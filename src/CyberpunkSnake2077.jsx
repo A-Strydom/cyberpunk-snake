@@ -481,10 +481,11 @@ export default function CyberpunkSnake2077() {
       ctx.fillText(stateRef.current.dead ? "SYSTEM FAILURE" : "PAUSED", cx, cy - 20);
 
       ctx.shadowBlur = 6;
-      ctx.font = `${Math.floor(canvas.width * 0.018)}px ui-monospace`;
+      // Use monospace HUD font (preferred look for pause instructions)
+      ctx.font = `${Math.floor(canvas.width * 0.018)}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`;
       ctx.fillStyle = NEON.text;
       ctx.globalAlpha = 0.9;
-      ctx.fillText("Press R to Reboot • Space to Resume", cx, cy + 20);
+      ctx.fillText("Press R to Reboot • Space to Resume", cx, cy + 40);
     }
 
     ctx.restore();
