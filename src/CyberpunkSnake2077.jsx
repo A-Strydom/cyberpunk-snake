@@ -236,6 +236,17 @@ export default function CyberpunkSnake2077() {
 
     // Eat food
     if (newHead.x === st.food.x && newHead.y === st.food.y) {
+      // Get food color before spawning new food
+      const foodType = st.food.type ?? 0;
+      let foodColor = NEON.food;
+      switch (foodType) {
+        case 0: foodColor = "#ffd700"; break; // Eddies - gold
+        case 1: foodColor = NEON.snake; break; // Data Shard - cyan
+        case 2: foodColor = NEON.accent; break; // Cyberware - green
+        case 3: foodColor = NEON.food; break; // Energy Cell - pink
+        default: foodColor = NEON.food; break;
+      }
+      
       setScore((s) => {
         const ns = s + 10;
         if (ns > highRef.current) {
@@ -245,7 +256,7 @@ export default function CyberpunkSnake2077() {
         return ns;
       });
       st.food = spawnFood(st.snake, grid);
-      burstParticles(newHead, 12);
+      burstParticles(newHead, 12, foodColor);
     } else {
       st.snake.pop(); // move forward
     }
@@ -270,7 +281,11 @@ export default function CyberpunkSnake2077() {
       x = randInt(0, grid.cols - 1);
       y = randInt(0, grid.rows - 1);
     } while (snake.some((s) => s.x === x && s.y === y));
-    return { x, y };
+    
+    // Random food type representing Cyberpunk 2077 items:
+    // 0=Eddies (currency), 1=Data Shard, 2=Cyberware Implant, 3=Energy Cell
+    const foodType = randInt(0, 3);
+    return { x, y, type: foodType };
   }
 
   function gridToPx(x, y, cw, ch) {
@@ -279,16 +294,24 @@ export default function CyberpunkSnake2077() {
     return [px, py, cw, ch];
   }
 
-  function burstParticles(cell, n = 10) {
+  function burstParticles(cell, n = 10, foodColor = null) {
     const st = stateRef.current;
     for (let i = 0; i < n; i++) {
+      let particleColor;
+      if (foodColor) {
+        // Use food color with some variation
+        particleColor = foodColor;
+      } else {
+        // Default: mix of food and accent
+        particleColor = Math.random() > 0.5 ? NEON.food : NEON.accent;
+      }
       st.particles.push({
         x: cell.x + 0.5,
         y: cell.y + 0.5,
         life: 1,
         dx: (Math.random() - 0.5) * 0.08,
         dy: (Math.random() - 0.5) * 0.08,
-        color: Math.random() > 0.5 ? NEON.food : NEON.accent,
+        color: particleColor,
       });
     }
   }
@@ -398,25 +421,172 @@ export default function CyberpunkSnake2077() {
   function drawFood(ctx, cw, ch) {
     const st = stateRef.current;
     const [x, y, w, h] = gridToPx(st.food.x, st.food.y, cw, ch);
+    const foodType = st.food.type ?? 0; // Default to 0 if not set
 
     ctx.save();
-    ctx.shadowColor = NEON.food;
-    ctx.shadowBlur = 24;
+    
+    const centerX = x + w / 2;
+    const centerY = y + h / 2;
+    const size = Math.min(w, h) * 0.45;
 
-    const g = ctx.createRadialGradient(
-      x + w / 2,
-      y + h / 2,
-      Math.min(w, h) * 0.1,
-      x + w / 2,
-      y + h / 2,
-      Math.max(w, h) * 0.6
-    );
-    g.addColorStop(0, NEON.foodCore);
-    g.addColorStop(1, NEON.food);
-    ctx.fillStyle = g;
-
-    roundRect(ctx, x + 2, y + 2, w - 4, h - 4, Math.min(w, h) * 0.35);
-    ctx.fill();
+    // Different Cyberpunk 2077 items based on food type
+    if (foodType === 0) {
+      // Eddies (Eurodollars) - Gold coin/chip
+      ctx.shadowColor = "#ffd700";
+      ctx.shadowBlur = 20;
+      
+      // Outer ring
+      const g1 = ctx.createRadialGradient(centerX, centerY, size * 0.3, centerX, centerY, size);
+      g1.addColorStop(0, "#fff44f");
+      g1.addColorStop(0.5, "#ffd700");
+      g1.addColorStop(1, "#ffaa00");
+      ctx.fillStyle = g1;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, size, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Inner circle (chip detail)
+      ctx.fillStyle = "#ffd700";
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, size * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Euro symbol or chip pattern
+      ctx.strokeStyle = "#ffaa00";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, size * 0.4, 0, Math.PI * 2);
+      ctx.stroke();
+      
+    } else if (foodType === 1) {
+      // Data Shard - Hexagonal tech device
+      ctx.shadowColor = NEON.snake;
+      ctx.shadowBlur = 24;
+      
+      // Hexagon shape
+      const hexSize = size * 0.9;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i - Math.PI / 6;
+        const px = centerX + Math.cos(angle) * hexSize;
+        const py = centerY + Math.sin(angle) * hexSize;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      
+      const g = ctx.createLinearGradient(centerX - hexSize, centerY - hexSize, centerX + hexSize, centerY + hexSize);
+      g.addColorStop(0, NEON.snakeCore);
+      g.addColorStop(0.5, NEON.snake);
+      g.addColorStop(1, "#00ccd6");
+      ctx.fillStyle = g;
+      ctx.fill();
+      
+      // Inner hexagon (tech detail)
+      ctx.strokeStyle = "#00ccd6";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i - Math.PI / 6;
+        const px = centerX + Math.cos(angle) * (hexSize * 0.5);
+        const py = centerY + Math.sin(angle) * (hexSize * 0.5);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.stroke();
+      
+      // Center dot
+      ctx.fillStyle = "#00ccd6";
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, size * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+      
+    } else if (foodType === 2) {
+      // Cyberware Implant - Tech hexagon with circuit pattern
+      ctx.shadowColor = NEON.accent;
+      ctx.shadowBlur = 22;
+      
+      // Outer hexagon
+      const hexSize = size;
+      const g = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, hexSize);
+      g.addColorStop(0, "#4affb8");
+      g.addColorStop(0.4, NEON.accent);
+      g.addColorStop(1, "#0d9d6b");
+      ctx.fillStyle = g;
+      
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i - Math.PI / 6;
+        const px = centerX + Math.cos(angle) * hexSize;
+        const py = centerY + Math.sin(angle) * hexSize;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      
+      // Inner tech pattern - small hexagons
+      ctx.fillStyle = "#4affb8";
+      const innerHexSize = hexSize * 0.35;
+      for (let i = 0; i < 3; i++) {
+        const angle = (Math.PI * 2 / 3) * i;
+        const px = centerX + Math.cos(angle) * (hexSize * 0.3);
+        const py = centerY + Math.sin(angle) * (hexSize * 0.3);
+        ctx.beginPath();
+        for (let j = 0; j < 6; j++) {
+          const a = (Math.PI / 3) * j - Math.PI / 6;
+          const pxx = px + Math.cos(a) * innerHexSize;
+          const pyy = py + Math.sin(a) * innerHexSize;
+          if (j === 0) ctx.moveTo(pxx, pyy);
+          else ctx.lineTo(pxx, pyy);
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+      
+      // Center core
+      ctx.fillStyle = "#0d9d6b";
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, size * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      
+    } else if (foodType === 3) {
+      // Energy Cell - Glowing battery/orb
+      ctx.shadowColor = "#ff2a6d";
+      ctx.shadowBlur = 28;
+      
+      // Outer glow
+      const g1 = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, size * 1.2);
+      g1.addColorStop(0, "#ff6f91");
+      g1.addColorStop(0.6, NEON.food);
+      g1.addColorStop(1, "#cc1f52");
+      ctx.fillStyle = g1;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, size, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Inner core
+      const g2 = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, size * 0.6);
+      g2.addColorStop(0, "#ffffff");
+      g2.addColorStop(0.3, "#ff6f91");
+      g2.addColorStop(1, NEON.food);
+      ctx.fillStyle = g2;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, size * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Battery terminals (top and bottom)
+      ctx.fillStyle = "#cc1f52";
+      const terminalWidth = size * 0.3;
+      const terminalHeight = size * 0.15;
+      // Top terminal
+      roundRect(ctx, centerX - terminalWidth / 2, centerY - size * 0.75, terminalWidth, terminalHeight, 2);
+      ctx.fill();
+      // Bottom terminal
+      roundRect(ctx, centerX - terminalWidth / 2, centerY + size * 0.6, terminalWidth, terminalHeight, 2);
+      ctx.fill();
+    }
 
     ctx.restore();
   }
