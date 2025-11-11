@@ -1320,7 +1320,7 @@
     let direction = { x: 1, y: 0 };
     let nextDirection = { x: 1, y: 0 };
     let directionQueue = []; // Queue to capture rapid key presses
-    let food = { x: 15, y: 15 };
+    let food = { x: 4, y: 0 }; // Initial food at cell 4 in top row for immediate catch
     let score = 0;
     let highscore = parseInt(localStorage.getItem('snakeHighscore') || '0', 10) || 0;
     let gameRunning = false;
@@ -1423,7 +1423,7 @@
         localStorage.setItem('soundEnabled', this.enabled.toString());
         this.updateButton();
         if (this.enabled) {
-          this.playSwoosh();
+          this.playDirectionChange();
         }
       },
       
@@ -1471,17 +1471,9 @@
         }
       },
       
-      playSwoosh() {
-        // Stop any previous swoosh sounds immediately to allow interruption
-        this.activeOscillators.forEach(osc => {
-          try {
-            osc.stop();
-          } catch (e) {}
-        });
-        this.activeOscillators = [];
-        
-        // Play immediately - no delays
-        this.playTone(300, 0.04, 'sine', 0.15);
+      playDirectionChange() {
+        // Super short basic cyber beep when switching direction
+        this.playTone(400, 0.015, 'square', 0.12);
       },
       
       playEat() {
@@ -1921,9 +1913,9 @@
         nextDirection = newDir;
       }
       
-      // Play swoosh sound when direction actually changes
+      // Play super short cyber beep when direction actually changes
       if (isDirectionChanging) {
-        SoundManager.playSwoosh();
+        SoundManager.playDirectionChange();
       }
       
       // Limit queue size to prevent memory issues (keep last 3 directions)
@@ -2068,8 +2060,8 @@
       currentSpeed = INITIAL_SPEED;
       lastMoveTime = 0;
       
-      // Regenerate food on restart
-      food = generateFood();
+      // Set initial food position (cell 4, top row) for immediate catch
+      food = { x: 4, y: 0 };
       
       // Hide game over screen if it's showing
       hideGameOver();
@@ -2112,8 +2104,8 @@
       currentSpeed = INITIAL_SPEED;
       lastMoveTime = 0;
       
-      // Regenerate food on restart
-      food = generateFood();
+      // Set initial food position (cell 4, top row) for immediate catch
+      food = { x: 4, y: 0 };
       
       // Hide game over screen
       hideGameOver();
@@ -2239,8 +2231,8 @@
       }
     });
 
-    // Initialize - generate food once at startup
-    food = generateFood();
+    // Initialize - set initial food position (cell 4, top row) for immediate catch
+    food = { x: 4, y: 0 };
     updateScores();
     draw();
     
