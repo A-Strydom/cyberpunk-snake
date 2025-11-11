@@ -620,6 +620,33 @@
       transform: scale(1.02);
       text-shadow: 0 0 15px #00ffff;
     }
+    #spawnSnack {
+      background: transparent;
+      border: 1px solid #ffeb3b;
+      color: #ffeb3b;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      padding: 6px 15px;
+      cursor: pointer;
+      text-shadow: 0 0 6px #ffeb3b;
+      box-shadow: 0 0 10px rgba(255, 235, 59, 0.5);
+      transition: all 0.3s ease;
+      border-radius: 4px;
+      text-transform: uppercase;
+      width: 100%;
+      margin-top: 8px;
+    }
+    #spawnSnack:hover {
+      background: rgba(255, 235, 59, 0.1);
+      color: #ffff00;
+      border-color: #ffff00;
+      box-shadow: 0 0 20px rgba(255, 255, 0, 0.8);
+      transform: scale(1.02);
+      text-shadow: 0 0 15px #ffff00;
+    }
+    #spawnSnack:active {
+      transform: scale(0.98);
+    }
     #autodriveStop {
       background: transparent;
       border: 1px solid #ff6b35;
@@ -1191,6 +1218,11 @@
         padding: 5px 12px;
       }
 
+      #spawnSnack {
+        font-size: 10px;
+        padding: 5px 12px;
+      }
+
       #autodriveStop {
         font-size: 11px;
         padding: 6px 15px;
@@ -1369,6 +1401,11 @@
       }
 
       #autodriveHyperSpeed {
+        font-size: 9px;
+        padding: 4px 10px;
+      }
+
+      #spawnSnack {
         font-size: 9px;
         padding: 4px 10px;
       }
@@ -1555,6 +1592,7 @@
         <span id="autodriveSpeedValue" class="autodrive-speed-value">1x</span>
       </div>
       <button id="autodriveHyperSpeed">HYPER SPEED</button>
+      <button id="spawnSnack">SPAWN SNACK</button>
     </div>
     <button id="autodriveStop">STOP</button>
   </div>
@@ -2936,6 +2974,21 @@
         autodriveSpeed = maxSpeed;
         autodriveSpeedSlider.value = maxSpeed;
         autodriveSpeedValue.textContent = maxSpeed + 'x';
+      });
+    }
+
+    const spawnSnackBtn = document.getElementById('spawnSnack');
+    if (spawnSnackBtn) {
+      spawnSnackBtn.addEventListener('click', () => {
+        if (gameRunning && !gameOver) {
+          // Don't spawn if we're at max score
+          if (score >= 4000) return;
+          
+          // Spawn a single snack in an open cell
+          const newFood = generateFood();
+          food.push(newFood);
+          draw();
+        }
       });
     }
 
