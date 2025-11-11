@@ -1279,6 +1279,7 @@
     let snake = [{ x: 10, y: 10 }];
     let direction = { x: 1, y: 0 };
     let nextDirection = { x: 1, y: 0 };
+    let directionQueue = []; // Queue to capture rapid key presses
     let food = { x: 15, y: 15 };
     let score = 0;
     let highscore = parseInt(localStorage.getItem('snakeHighscore')) || 0;
@@ -1287,6 +1288,8 @@
     let gamePaused = false;
     let gameLoop = null;
     let currentSpeed = INITIAL_SPEED;
+    let lastMoveTime = 0;
+    let animationFrameId = null;
 
     // Responsive canvas sizing
     function getCanvasSize() {
@@ -1486,7 +1489,16 @@
     }
 
     function draw() {
-      // Clear canvas
+      // Clear canvas completely to remove any ghosting
+      ctx.clearRect(0, 0, canvas.width / scale, canvas.height / scale);
+      
+      // Reset all shadow properties
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      
+      // Draw background
       ctx.fillStyle = 'rgba(10, 10, 30, 0.3)';
       ctx.fillRect(0, 0, canvas.width / scale, canvas.height / scale);
 
@@ -1525,44 +1537,104 @@
       ctx.shadowColor = '#ffeb3b';
       ctx.shadowBlur = 10;
       ctx.fillRect(foodX + 2, foodY + 2, cellSize - 4, cellSize - 4);
+      // Reset shadow after food
+      ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
 
-      // Draw snake
+      // Draw snake with continuous gradient
+      const snakeLength = snake.length;
+      if (snakeLength === 0) return;
+      
+      // Define color stops for smooth gradient from head to tail
+      const headColor = { r: 0, g: 245, b: 255 }; // #00f5ff
+      const midColor = { r: 0, g: 170, b: 200 };  // #00aacc
+      const tailColor = { r: 100, g: 50, b: 200 }; // Purple for visibility
+      
       snake.forEach((segment, index) => {
         const x = segment.x * cellSize;
         const y = segment.y * cellSize;
         
-        // Head gets special treatment
-        if (index === 0) {
-          const headGradient = ctx.createLinearGradient(x, y, x + cellSize, y + cellSize);
-          headGradient.addColorStop(0, '#00f5ff');
-          headGradient.addColorStop(1, '#00aacc');
-          ctx.fillStyle = headGradient;
-          ctx.shadowColor = '#00f5ff';
-          ctx.shadowBlur = 15;
+        // Calculate position ratio (0 = head, 1 = tail)
+        const ratio = index / (snakeLength - 1);
+        
+        // Interpolate color smoothly from head to tail
+        let r, g, b;
+        if (ratio < 0.5) {
+          // First half: head to mid
+          const t = ratio * 2; // 0 to 1
+          r = Math.round(headColor.r + (midColor.r - headColor.r) * t);
+          g = Math.round(headColor.g + (midColor.g - headColor.g) * t);
+          b = Math.round(headColor.b + (midColor.b - headColor.b) * t);
         } else {
-          // Body segments
-          const intensity = 1 - (index / snake.length) * 0.3;
-          const hue = 180 + (index * 5) % 60;
-          ctx.fillStyle = `hsl(${hue}, 100%, ${50 + intensity * 10}%)`;
-          ctx.shadowColor = `hsl(${hue}, 100%, 50%)`;
-          ctx.shadowBlur = 8;
+          // Second half: mid to tail
+          const t = (ratio - 0.5) * 2; // 0 to 1
+          r = Math.round(midColor.r + (tailColor.r - midColor.r) * t);
+          g = Math.round(midColor.g + (tailColor.g - midColor.g) * t);
+          b = Math.round(midColor.b + (tailColor.b - midColor.b) * t);
+        }
+        
+        // Make tail segment(s) brighter and more visible
+        const isTail = index === snakeLength - 1;
+        const isNearTail = index >= snakeLength - 2;
+        
+        if (isTail) {
+          // Tail: bright purple/cyan for maximum visibility
+          r = 150;
+          g = 100;
+          b = 255;
+        } else if (isNearTail) {
+          // Near tail: slightly brighter
+          r = Math.min(255, r + 30);
+          g = Math.min(255, g + 20);
+          b = Math.min(255, b + 30);
+        }
+        
+        const color = `rgb(${r}, ${g}, ${b})`;
+        ctx.fillStyle = color;
+        
+        // Shadow/glow effect - only for head and tail, reduced for body to prevent ghosting
+        if (index === 0) {
+          ctx.shadowColor = '#00f5ff';
+          ctx.shadowBlur = 10;
+        } else if (isTail) {
+          ctx.shadowColor = `rgb(${r}, ${g}, ${b})`;
+          ctx.shadowBlur = 8; // Reduced to prevent ghosting
+        } else {
+          // Body segments: minimal or no shadow to prevent ghosting
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
         }
         
         ctx.fillRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
         
-        // Border
-        ctx.strokeStyle = `rgba(0, 245, 255, ${index === 0 ? 0.8 : 0.5})`;
-        ctx.lineWidth = 1;
+        // Reset shadow before border to prevent bleeding
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        
+        // Border - stronger on head and tail
+        const borderAlpha = index === 0 ? 0.9 : (isTail ? 0.8 : 0.5);
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${borderAlpha})`;
+        ctx.lineWidth = index === 0 || isTail ? 1.5 : 1;
         ctx.strokeRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
       });
+      
+      // Ensure all shadow properties are reset after drawing snake
+      ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
     }
 
     function moveSnake() {
       if (!gameRunning || gameOver || gamePaused) return;
 
-      // Update direction
+      // Process direction queue - use the first queued direction if available
+      // This ensures rapid key presses are all processed in order
+      if (directionQueue.length > 0) {
+        nextDirection = directionQueue.shift();
+      }
+      
+      // Update direction from nextDirection
       direction = { ...nextDirection };
 
       // Calculate new head position
@@ -1606,7 +1678,35 @@
       }
 
       SoundManager.playMove();
-      draw();
+      // Don't draw here - let the render loop handle it
+    }
+
+    // Smooth game loop using requestAnimationFrame
+    function animationLoop(timestamp) {
+      // Always render for smooth animations (even when paused or game over)
+      if (gameRunning || gameOver) {
+        draw();
+      }
+
+      // Update game logic based on speed (only when running and not paused)
+      if (gameRunning && !gameOver && !gamePaused) {
+        if (lastMoveTime === 0) {
+          lastMoveTime = timestamp;
+        }
+        
+        const elapsed = timestamp - lastMoveTime;
+        if (elapsed >= currentSpeed) {
+          moveSnake();
+          lastMoveTime = timestamp;
+        }
+      }
+
+      // Continue the loop only if game is running or just ended
+      if (gameRunning || gameOver) {
+        animationFrameId = requestAnimationFrame(animationLoop);
+      } else {
+        animationFrameId = null;
+      }
     }
 
     function startGame() {
@@ -1615,20 +1715,32 @@
       snake = [{ x: 10, y: 10 }];
       direction = { x: 1, y: 0 };
       nextDirection = { x: 1, y: 0 };
-      food = generateFood();
+      directionQueue = []; // Clear direction queue on restart
+      // Don't regenerate food here - it should already be set at initialization
+      // Food will only be regenerated when the snake eats it
       score = 0;
       gameOver = false;
       gamePaused = false;
       gameRunning = true;
       currentSpeed = INITIAL_SPEED;
+      lastMoveTime = 0;
       
       updateScores();
       hideGameOver();
       updatePauseButton();
       draw();
       
-      if (gameLoop) clearInterval(gameLoop);
-      gameLoop = setInterval(moveSnake, currentSpeed);
+      // Stop any existing loop
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+      if (gameLoop) {
+        clearInterval(gameLoop);
+        gameLoop = null;
+      }
+      
+      // Start smooth animation loop
+      animationFrameId = requestAnimationFrame(animationLoop);
     }
 
     function togglePause() {
@@ -1638,14 +1750,10 @@
       updatePauseButton();
       
       if (gamePaused) {
-        if (gameLoop) {
-          clearInterval(gameLoop);
-          gameLoop = null;
-        }
         SoundManager.playGlitch();
+        // Keep rendering even when paused for smooth UI
       } else {
-        if (gameLoop) clearInterval(gameLoop);
-        gameLoop = setInterval(moveSnake, currentSpeed);
+        lastMoveTime = performance.now();
         SoundManager.playMove();
       }
     }
@@ -1671,10 +1779,19 @@
       
       gameRunning = false;
       gameOver = true;
+      
+      // Stop animation loop
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
       if (gameLoop) {
         clearInterval(gameLoop);
         gameLoop = null;
       }
+      
+      // Final render
+      draw();
       
       SoundManager.playGameOver();
       showGameOver();
@@ -1697,12 +1814,34 @@
       
       if (gameOver || gamePaused) return;
       
+      // Determine what direction to check against
+      // Use the last queued direction if queue exists, otherwise use nextDirection
+      const checkDir = directionQueue.length > 0 
+        ? directionQueue[directionQueue.length - 1] 
+        : nextDirection;
+      
       // Prevent reversing into itself
-      if (newDir.x === -direction.x && newDir.y === -direction.y) {
+      if (newDir.x === -checkDir.x && newDir.y === -checkDir.y) {
         return;
       }
       
-      nextDirection = newDir;
+      // Add to queue to capture rapid key presses
+      // Remove any duplicate of this direction from queue first
+      directionQueue = directionQueue.filter(
+        dir => !(dir.x === newDir.x && dir.y === newDir.y)
+      );
+      directionQueue.push(newDir);
+      
+      // Update nextDirection if queue was empty (for immediate responsiveness)
+      // Otherwise, the queue will be processed in moveSnake
+      if (directionQueue.length === 1) {
+        nextDirection = newDir;
+      }
+      
+      // Limit queue size to prevent memory issues (keep last 3 directions)
+      if (directionQueue.length > 3) {
+        directionQueue.shift();
+      }
     }
 
     // Keyboard controls
@@ -1828,10 +1967,18 @@
         canvas.classList.remove('glitching');
       }, 500);
       
+      // Stop any existing loops
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
       if (gameLoop) {
         clearInterval(gameLoop);
         gameLoop = null;
       }
+      
+      // Regenerate food on restart
+      food = generateFood();
       
       setTimeout(() => {
         startGame();
@@ -1839,6 +1986,8 @@
     });
 
     restartGameBtn.addEventListener('click', () => {
+      // Regenerate food on restart from game over screen
+      food = generateFood();
       startGame();
     });
 
@@ -1955,7 +2104,8 @@
       }
     });
 
-    // Initialize
+    // Initialize - generate food once at startup
+    food = generateFood();
     updateScores();
     draw();
     
