@@ -1,94 +1,162 @@
-# Cyberpunk Snake 2077
+# Cyberpunk Snake 🐍
 
-A cyberpunk-themed Snake game built with React and HTML5 Canvas.
+A retro-futuristic Snake game with neon aesthetics, smooth animations, and cyberpunk vibes. Built with pure HTML, CSS, and JavaScript - no dependencies required!
 
-## Quick Start
+![Cyberpunk Snake](https://img.shields.io/badge/Game-Cyberpunk%20Snake-00f5ff?style=for-the-badge&logo=gamepad&logoColor=white)
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+## 🎮 Features
 
-2. **Start the development server:**
-   ```bash
-   npm run dev
-   ```
+- **Cyberpunk Aesthetic**: Neon colors, glitch effects, and retro-futuristic design
+- **Wall Wrapping**: Snake wraps around walls instead of dying (classic arcade style)
+- **Progressive Difficulty**: Game speed increases as your score grows
+- **Pause/Resume**: Pause the game anytime with the pause button or spacebar
+- **Sound Effects**: Immersive audio feedback for moves, eating, and game events
+- **High Score Tracking**: Local storage saves your best score
+- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
+- **Touch Controls**: Swipe gestures and directional pad for mobile gameplay
+- **Keyboard Controls**: Full keyboard support for desktop players
 
-3. **Open your browser:**
-   The game will be available at `http://localhost:5173` (or the port shown in the terminal)
+## 🚀 Getting Started
 
-## Controls
+### Installation
 
-- **Arrow Keys** or **WASD** - Move the snake
-- **Space** - Pause/Resume
-- **R** - Restart game
-- **+/-** - Adjust game speed
-
-## Features
-
-- Neon cyberpunk aesthetic with glowing effects
-- Particle effects and trail animations
-- CRT scanlines for retro feel
-- High score tracking (stored in localStorage)
-- Responsive design
-- Adjustable game speed
-
-## Build for Production
-
+1. Clone the repository:
 ```bash
-npm run build
+git clone https://github.com/yourusername/snake.git
+cd snake
 ```
 
-The built files will be in the `dist` directory.
+2. Open `index.html` in your web browser - that's it! No build process or dependencies needed.
 
-## Deploy to GitHub Pages
+### Play Online
 
-### Option 1: Automatic Deployment (Recommended)
+Simply open `index.html` in any modern web browser. The game works offline and requires no server.
 
-This project includes a GitHub Actions workflow that automatically deploys to GitHub Pages when you push to the `main` branch.
+## 🎯 How to Play
 
-1. **Enable GitHub Pages:**
-   - Go to your repository on GitHub
-   - Navigate to **Settings** → **Pages**
-   - Under **Source**, select **GitHub Actions**
-   - Save the changes
+### Objective
+Control the snake to eat food and grow longer. The game ends only if the snake hits its own body.
 
-2. **Update the base path** (if needed):
-   - The default base path is `/` which works with GitHub Actions Pages
-   - If you need a custom base path, set it via environment variable: `VITE_BASE_PATH=/your-repo-name/`
+### Gameplay
+- The snake moves continuously in the current direction
+- Eat the glowing yellow food to grow and increase your score
+- Each food item increases your score by 10 points
+- The snake wraps around walls (goes through to the opposite side)
+- The game ends only if you hit your own body
+- The snake moves faster as your score increases
 
-3. **Push to GitHub:**
-   ```bash
-   git add .
-   git commit -m "Setup GitHub Pages deployment"
-   git push origin main
-   ```
+### Controls
 
-4. The workflow will automatically build and deploy your site. Check the **Actions** tab in your repository to see the deployment progress.
+#### Desktop
+- **Arrow Keys** (↑ ↓ ← →): Change direction
+- **Spacebar**: Pause/Resume or Start game
+- **Escape**: Close modals
 
-### Option 2: Manual Deployment
+#### Mobile
+- **Swipe Gestures**: Swipe in any direction to change direction
+- **Directional Pad**: Use the on-screen D-pad buttons
+- **Touch Controls**: Tap pause button or swipe to control
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+#### UI Controls
+- **Menu Button** (☰): Access game menu (Help, Clear High Score)
+- **Pause Button** (⏸/▶): Pause or resume the game
+- **Sound Button** (🔊): Toggle sound effects on/off
+- **Reboot Button**: Restart the current game
 
-2. **Update the base path** for manual deployment:
-   - Set the base path to match your repository name: `VITE_BASE_PATH=/your-repo-name/ npm run deploy`
-   - Or update `vite.config.js` to set the base path directly
+## 🎨 Features in Detail
 
-3. **Deploy:**
-   ```bash
-   npm run deploy
-   ```
+### Visual Design
+- **Neon Color Scheme**: Cyan (#00f5ff), Orange (#ff6b35), Yellow (#ffeb3b), and Red (#ff0040)
+- **Glitch Effects**: Cyberpunk-style visual glitches on game events
+- **Animated Background**: Code streams, text artifacts, and geometric patterns
+- **Glowing Elements**: All UI elements feature neon glow effects
 
-   This will build your project and push it to the `gh-pages` branch.
+### Game Mechanics
+- **Wall Wrapping**: Snake teleports to the opposite side when hitting walls
+- **Speed Progression**: Game speed increases incrementally with each food eaten
+- **Score System**: 10 points per food, with persistent high score tracking
+- **Collision Detection**: Only self-collision ends the game
 
-4. **Enable GitHub Pages:**
-   - Go to your repository on GitHub
-   - Navigate to **Settings** → **Pages**
-   - Under **Source**, select the `gh-pages` branch
-   - Save the changes
+### Audio
+- **Move Sound**: Subtle audio feedback for each movement
+- **Eat Sound**: Two-tone chime when eating food
+- **Game Over Sound**: Dramatic sequence on game end
+- **Glitch Sound**: Audio feedback for special events
+- **Toggleable**: Sound can be enabled/disabled via UI
 
-Your game will be available at `https://your-username.github.io/Cyberpunk-Snake/` (or your repository URL).
+## 📱 Mobile Support
+
+The game is fully responsive and optimized for mobile devices:
+- Touch-friendly controls
+- Swipe gesture support
+- Responsive layout for all screen sizes
+- Optimized performance for mobile browsers
+- Prevents accidental page scrolling during gameplay
+
+## 🛠️ Technical Details
+
+### Technologies
+- **HTML5**: Canvas API for game rendering
+- **CSS3**: Advanced styling with animations and gradients
+- **JavaScript (ES6+)**: Game logic and state management
+- **Web Audio API**: Sound generation and playback
+- **LocalStorage API**: High score persistence
+
+### Browser Compatibility
+- Chrome/Edge (recommended)
+- Firefox
+- Safari
+- Opera
+- Mobile browsers (iOS Safari, Chrome Mobile)
+
+### Performance
+- 60 FPS gameplay
+- Optimized rendering with pixel-perfect graphics
+- Efficient collision detection
+- Smooth animations and transitions
+
+## 🎮 Game Tips
+
+1. **Plan Your Path**: Think ahead to avoid trapping yourself
+2. **Use Wall Wrapping**: Escape tight situations by wrapping around walls
+3. **Control Your Speed**: As the game speeds up, be more careful with direction changes
+4. **Practice**: The game gets progressively faster - practice makes perfect!
+
+## 📝 License
+
+This project is open source and available under the MIT License.
+
+## 🙏 Credits
+
+- **Design Inspiration**: Cyberpunk 2048 aesthetic
+- **Fonts**: 
+  - [Share Tech Mono](https://fonts.google.com/specimen/Share+Tech+Mono) - UI elements
+  - [Sixtyfour](https://fonts.google.com/specimen/Sixtyfour) - Title font
+- **Icons**: [Material Icons](https://fonts.google.com/icons)
+
+## 🔮 Future Enhancements
+
+Potential features for future versions:
+- [ ] Multiple difficulty levels
+- [ ] Power-ups and special food types
+- [ ] Multiplayer mode
+- [ ] Leaderboard system
+- [ ] Custom themes
+- [ ] Achievement system
+- [ ] Game statistics tracking
+
+## 🐛 Issues & Contributions
+
+Found a bug or have a feature request? Please open an issue on GitHub!
+
+Contributions are welcome! Feel free to fork the repository and submit pull requests.
+
+---
+
+**Enjoy the game!** 🎮✨
+
+Made with ❤️ and neon lights
 
