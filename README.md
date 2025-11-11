@@ -158,5 +158,3 @@ Contributions are welcome! Feel free to fork the repository and submit pull requ
 
 **Enjoy the game!** 🎮✨
 
-Made with ❤️ and neon lights
-
