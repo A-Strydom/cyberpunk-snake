@@ -663,6 +663,41 @@
       transform: scale(1.1);
       text-shadow: 0 0 15px #ffeb3b;
     }
+    #startGame {
+      background: transparent;
+      border: 2px solid #00f5ff;
+      color: #00f5ff;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 24px;
+      padding: 18px 50px;
+      cursor: pointer;
+      text-shadow: 0 0 10px #00f5ff;
+      box-shadow: 0 0 20px #00f5ff;
+      transition: all 0.3s ease;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 200;
+      display: none;
+    }
+    #startGame.show {
+      display: block;
+    }
+    #startGame:hover {
+      background: rgba(0, 245, 255, 0.15);
+      color: #ffeb3b;
+      border-color: #ffeb3b;
+      box-shadow: 0 0 30px #ffeb3b;
+      transform: translate(-50%, -50%) scale(1.05);
+      text-shadow: 0 0 20px #ffeb3b;
+    }
+    #startGame:active {
+      transform: translate(-50%, -50%) scale(0.98);
+    }
     #helpModal {
       position: fixed;
       top: 0;
@@ -1136,6 +1171,11 @@
       .direction-btn .material-icons {
         font-size: 18px;
       }
+
+      #startGame {
+        font-size: 18px;
+        padding: 14px 35px;
+      }
     }
 
     /* Prevent text selection on buttons for better mobile UX */
@@ -1190,6 +1230,7 @@
       </div>
     </div>
     <canvas id="game"></canvas>
+    <button id="startGame">START GAME</button>
   </div>
   <div id="helpModal">
     <div class="help-content">
@@ -1267,22 +1308,21 @@
     const gameOverEl = document.getElementById('gameOver');
     const finalScoreEl = document.getElementById('finalScore');
     const restartGameBtn = document.getElementById('restartGame');
+    const startGameBtn = document.getElementById('startGame');
 
     // Game constants
     const GRID_SIZE = 20;
     const CELL_SIZE = 20;
-    const INITIAL_SPEED = 150; // milliseconds per move
-    const SPEED_INCREMENT = 2; // speed increase per food eaten
-    const MIN_SPEED = 50; // minimum speed (fastest)
+    const INITIAL_SPEED = 150; // milliseconds per move (constant speed)
 
     // Game state
-    let snake = [{ x: 10, y: 10 }];
+    let snake = [{ x: 0, y: 0 }]; // Start at top left
     let direction = { x: 1, y: 0 };
     let nextDirection = { x: 1, y: 0 };
     let directionQueue = []; // Queue to capture rapid key presses
     let food = { x: 15, y: 15 };
     let score = 0;
-    let highscore = parseInt(localStorage.getItem('snakeHighscore')) || 0;
+    let highscore = parseInt(localStorage.getItem('snakeHighscore') || '0', 10) || 0;
     let gameRunning = false;
     let gameOver = false;
     let gamePaused = false;
@@ -1383,17 +1423,23 @@
         localStorage.setItem('soundEnabled', this.enabled.toString());
         this.updateButton();
         if (this.enabled) {
-          this.playMove();
+          this.playSwoosh();
         }
       },
       
-      async playTone(frequency, duration, type = 'sine', volume = 0.3) {
+      activeOscillators: [],
+      
+      playTone(frequency, duration, type = 'sine', volume = 0.3) {
         if (!this.enabled || !this.audioContext) return;
         if (this.audioContext.state === 'suspended' && !this.hasUserInteracted) return;
-        await this.ensureResumed();
-        if (this.audioContext.state === 'suspended') return;
         
+        // Ensure audio context is resumed (non-blocking)
+        this.ensureResumed().catch(() => {});
+        
+        // Play immediately - Web Audio API is already non-blocking
         try {
+          if (this.audioContext.state === 'suspended') return;
+          
           const now = this.audioContext.currentTime;
           const oscillator = this.audioContext.createOscillator();
           const gainNode = this.audioContext.createGain();
@@ -1404,30 +1450,52 @@
           oscillator.type = type;
           oscillator.frequency.value = frequency;
           
-          gainNode.gain.setValueAtTime(0.0001, now);
-          gainNode.gain.exponentialRampToValueAtTime(volume, now + 0.003);
-          gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+          // Very quick envelope for immediate response
+          gainNode.gain.setValueAtTime(0, now);
+          gainNode.gain.linearRampToValueAtTime(volume, now + 0.002);
+          gainNode.gain.linearRampToValueAtTime(0, now + duration);
           
           oscillator.start(now);
           oscillator.stop(now + duration);
-        } catch (e) {}
+          
+          // Track active oscillators for potential cleanup
+          this.activeOscillators.push(oscillator);
+          oscillator.onended = () => {
+            const index = this.activeOscillators.indexOf(oscillator);
+            if (index > -1) {
+              this.activeOscillators.splice(index, 1);
+            }
+          };
+        } catch (e) {
+          // Silently fail
+        }
       },
       
-      async playMove() {
-        await this.ensureResumed();
-        this.playTone(200, 0.05, 'sine', 0.15);
+      playSwoosh() {
+        // Stop any previous swoosh sounds immediately to allow interruption
+        this.activeOscillators.forEach(osc => {
+          try {
+            osc.stop();
+          } catch (e) {}
+        });
+        this.activeOscillators = [];
+        
+        // Play immediately - no delays
+        this.playTone(300, 0.04, 'sine', 0.15);
       },
       
-      async playEat() {
-        await this.ensureResumed();
+      playEat() {
+        // Non-blocking sound
+        this.ensureResumed().catch(() => {});
         this.playTone(400, 0.1, 'sine', 0.25);
         setTimeout(() => {
           this.playTone(600, 0.08, 'sine', 0.2);
         }, 30);
       },
       
-      async playGameOver() {
-        await this.ensureResumed();
+      playGameOver() {
+        // Non-blocking sound
+        this.ensureResumed().catch(() => {});
         const frequencies = [300, 250, 200, 150];
         frequencies.forEach((freq, index) => {
           setTimeout(() => {
@@ -1436,8 +1504,9 @@
         });
       },
       
-      async playGlitch() {
-        await this.ensureResumed();
+      playGlitch() {
+        // Non-blocking sound
+        this.ensureResumed().catch(() => {});
         const frequencies = [200, 150, 250, 180];
         frequencies.forEach((freq, index) => {
           setTimeout(() => {
@@ -1477,15 +1546,17 @@
     }
 
     function updateScores() {
-      if (scoreEl) scoreEl.textContent = score;
-      if (highscoreEl) highscoreEl.textContent = highscore;
-      
+      // Update highscore first if current score is higher
       if (score > highscore) {
         highscore = score;
         try {
-          localStorage.setItem('snakeHighscore', highscore);
+          localStorage.setItem('snakeHighscore', String(highscore));
         } catch (e) {}
       }
+      
+      // Then update the display with the current values
+      if (scoreEl) scoreEl.textContent = score;
+      if (highscoreEl) highscoreEl.textContent = highscore;
     }
 
     function draw() {
@@ -1668,16 +1739,12 @@
         updateScores();
         SoundManager.playEat();
         
-        // Increase speed
-        currentSpeed = Math.max(MIN_SPEED, currentSpeed - SPEED_INCREMENT);
-        
         // Generate new food
         food = generateFood();
       } else {
         snake.pop();
       }
 
-      SoundManager.playMove();
       // Don't draw here - let the render loop handle it
     }
 
@@ -1712,7 +1779,7 @@
     function startGame() {
       if (gameRunning) return;
       
-      snake = [{ x: 10, y: 10 }];
+      snake = [{ x: 0, y: 0 }]; // Start at top left
       direction = { x: 1, y: 0 };
       nextDirection = { x: 1, y: 0 };
       directionQueue = []; // Clear direction queue on restart
@@ -1727,6 +1794,7 @@
       
       updateScores();
       hideGameOver();
+      hideStartButton();
       updatePauseButton();
       draw();
       
@@ -1754,7 +1822,6 @@
         // Keep rendering even when paused for smooth UI
       } else {
         lastMoveTime = performance.now();
-        SoundManager.playMove();
       }
     }
 
@@ -1793,8 +1860,13 @@
       // Final render
       draw();
       
+      // Ensure final score is saved to highscore
+      updateScores();
+      
       SoundManager.playGameOver();
       showGameOver();
+      // Show start button after game over
+      showStartButton();
     }
 
     function showGameOver() {
@@ -1806,13 +1878,21 @@
       gameOverEl.classList.remove('show');
     }
 
-    function changeDirection(newDir) {
-      if (!gameRunning && !gameOver) {
-        startGame();
-        return;
+    function showStartButton() {
+      if (startGameBtn) {
+        startGameBtn.classList.add('show');
       }
-      
-      if (gameOver || gamePaused) return;
+    }
+
+    function hideStartButton() {
+      if (startGameBtn) {
+        startGameBtn.classList.remove('show');
+      }
+    }
+
+    function changeDirection(newDir) {
+      // Don't auto-start on direction change - user must press start button
+      if (!gameRunning || gameOver || gamePaused) return;
       
       // Determine what direction to check against
       // Use the last queued direction if queue exists, otherwise use nextDirection
@@ -1825,6 +1905,9 @@
         return;
       }
       
+      // Check if direction is actually changing (not the same as current)
+      const isDirectionChanging = newDir.x !== checkDir.x || newDir.y !== checkDir.y;
+      
       // Add to queue to capture rapid key presses
       // Remove any duplicate of this direction from queue first
       directionQueue = directionQueue.filter(
@@ -1836,6 +1919,11 @@
       // Otherwise, the queue will be processed in moveSnake
       if (directionQueue.length === 1) {
         nextDirection = newDir;
+      }
+      
+      // Play swoosh sound when direction actually changes
+      if (isDirectionChanging) {
+        SoundManager.playSwoosh();
       }
       
       // Limit queue size to prevent memory issues (keep last 3 directions)
@@ -1870,13 +1958,10 @@
           break;
         case ' ':
           e.preventDefault();
-          if (gameOver) {
-            startGame();
-          } else if (!gameRunning) {
-            startGame();
-          } else if (gameRunning && !gameOver) {
+          if (gameRunning && !gameOver) {
             togglePause();
           }
+          // Don't auto-start on spacebar - user must press start button
           break;
       }
     });
@@ -1902,14 +1987,8 @@
       }
       
       if (isInteractiveElement(e.target)) return;
-      if (gameOver) {
-        startGame();
-        return;
-      }
-      if (!gameRunning) {
-        startGame();
-        return;
-      }
+      // Don't auto-start on touch - user must press start button
+      if (!gameRunning || gameOver || gamePaused) return;
       
       e.preventDefault();
       const touch = e.touches[0];
@@ -1967,7 +2046,7 @@
         canvas.classList.remove('glitching');
       }, 500);
       
-      // Stop any existing loops
+      // Stop any existing loops first
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
@@ -1977,18 +2056,72 @@
         gameLoop = null;
       }
       
+      // Reset all game state before restarting
+      gameRunning = false;
+      gameOver = false;
+      gamePaused = false;
+      score = 0;
+      snake = [{ x: 0, y: 0 }]; // Start at top left
+      direction = { x: 1, y: 0 };
+      nextDirection = { x: 1, y: 0 };
+      directionQueue = [];
+      currentSpeed = INITIAL_SPEED;
+      lastMoveTime = 0;
+      
       // Regenerate food on restart
       food = generateFood();
       
-      setTimeout(() => {
-        startGame();
-      }, 500);
+      // Hide game over screen if it's showing
+      hideGameOver();
+      
+      // Don't auto-start - wait for user to press start button
+      updateScores();
+      showStartButton();
+      draw();
     });
 
     restartGameBtn.addEventListener('click', () => {
-      // Regenerate food on restart from game over screen
+      // Play glitch sound like reboot button
+      SoundManager.playGlitch();
+      
+      // Add glitching animation to canvas
+      canvas.classList.add('glitching');
+      setTimeout(() => {
+        canvas.classList.remove('glitching');
+      }, 500);
+      
+      // Stop any existing loops first
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+      if (gameLoop) {
+        clearInterval(gameLoop);
+        gameLoop = null;
+      }
+      
+      // Reset all game state before restarting (same as reboot)
+      gameRunning = false;
+      gameOver = false;
+      gamePaused = false;
+      score = 0;
+      snake = [{ x: 0, y: 0 }]; // Start at top left
+      direction = { x: 1, y: 0 };
+      nextDirection = { x: 1, y: 0 };
+      directionQueue = [];
+      currentSpeed = INITIAL_SPEED;
+      lastMoveTime = 0;
+      
+      // Regenerate food on restart
       food = generateFood();
-      startGame();
+      
+      // Hide game over screen
+      hideGameOver();
+      
+      // Don't auto-start - wait for user to press start button
+      updateScores();
+      showStartButton();
+      draw();
     });
 
     // Menu toggle
@@ -2046,9 +2179,11 @@
     if (confirmYes) {
       confirmYes.addEventListener('click', () => {
         highscore = 0;
-        localStorage.setItem('snakeHighscore', '0');
+        // Store as number (localStorage will convert to string, but this ensures consistency)
+        localStorage.setItem('snakeHighscore', String(0));
         updateScores();
         if (confirmModal) confirmModal.classList.remove('show');
+        // Don't auto-start game after clearing high score
       });
     }
 
@@ -2109,19 +2244,15 @@
     updateScores();
     draw();
     
-    // Start game on first interaction
-    const startOnInteraction = () => {
-      if (!gameRunning && !gameOver) {
-        startGame();
-      }
-      document.removeEventListener('keydown', startOnInteraction);
-      document.removeEventListener('touchstart', startOnInteraction);
-      document.removeEventListener('click', startOnInteraction);
-    };
+    // Show start button initially
+    showStartButton();
     
-    document.addEventListener('keydown', startOnInteraction);
-    document.addEventListener('touchstart', startOnInteraction, { passive: true });
-    document.addEventListener('click', startOnInteraction);
+    // Start button click handler
+    if (startGameBtn) {
+      startGameBtn.addEventListener('click', () => {
+        startGame();
+      });
+    }
   </script>
 </body>
 </html>
