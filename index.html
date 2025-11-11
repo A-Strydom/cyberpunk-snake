@@ -596,6 +596,30 @@
       text-align: right;
       text-shadow: 0 0 6px #00f5ff;
     }
+    #autodriveHyperSpeed {
+      background: transparent;
+      border: 1px solid #00f5ff;
+      color: #00f5ff;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      padding: 6px 15px;
+      cursor: pointer;
+      text-shadow: 0 0 6px #00f5ff;
+      box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+      transition: all 0.3s ease;
+      border-radius: 4px;
+      text-transform: uppercase;
+      width: 100%;
+      margin-top: 8px;
+    }
+    #autodriveHyperSpeed:hover {
+      background: rgba(0, 245, 255, 0.1);
+      color: #00ffff;
+      border-color: #00ffff;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+      transform: scale(1.02);
+      text-shadow: 0 0 15px #00ffff;
+    }
     #autodriveStop {
       background: transparent;
       border: 1px solid #ff6b35;
@@ -1162,6 +1186,11 @@
         font-size: 12px;
       }
 
+      #autodriveHyperSpeed {
+        font-size: 10px;
+        padding: 5px 12px;
+      }
+
       #autodriveStop {
         font-size: 11px;
         padding: 6px 15px;
@@ -1337,6 +1366,11 @@
 
       .autodrive-speed-value {
         font-size: 11px;
+      }
+
+      #autodriveHyperSpeed {
+        font-size: 9px;
+        padding: 4px 10px;
       }
 
       #autodriveStop {
@@ -1517,9 +1551,10 @@
     <div class="autodrive-controls">
       <label>SPEED:</label>
       <div class="autodrive-speed-container">
-        <input type="range" id="autodriveSpeed" class="autodrive-speed-slider" min="0.5" max="5" step="0.5" value="1">
+        <input type="range" id="autodriveSpeed" class="autodrive-speed-slider" min="0.5" max="10000" step="0.5" value="1">
         <span id="autodriveSpeedValue" class="autodrive-speed-value">1x</span>
       </div>
+      <button id="autodriveHyperSpeed">HYPER SPEED</button>
     </div>
     <button id="autodriveStop">STOP</button>
   </div>
@@ -1578,8 +1613,8 @@
     let direction = { x: 1, y: 0 };
     let nextDirection = { x: 1, y: 0 };
     let directionQueue = []; // Queue to capture rapid key presses
-    let food = { x: 4, y: 0 }; // Initial food at cell 4 in top row for immediate catch
-    let score = 0;
+    let food = [{ x: 4, y: 0 }]; // Array of food items - initial food at cell 4 in top row for immediate catch
+    let score = 10; // Snake starts with 1 segment = 10 points
     let highscore = parseInt(localStorage.getItem('snakeHighscore') || '0', 10) || 0;
     let gameRunning = false;
     let gameOver = false;
@@ -1588,6 +1623,7 @@
     let currentSpeed = INITIAL_SPEED;
     let lastMoveTime = 0;
     let animationFrameId = null;
+    let hyperSpeedLoopId = null;
     let autodriveActive = false;
     let autodriveSpeed = 1.0;
 
@@ -1765,6 +1801,27 @@
             this.playTone(freq, 0.08, 'square', 0.15);
           }, index * 30);
         });
+      },
+      
+      playVictory() {
+        // Celebration sound - ascending tones
+        this.ensureResumed().catch(() => {});
+        const frequencies = [400, 500, 600, 700, 800, 900, 1000];
+        frequencies.forEach((freq, index) => {
+          setTimeout(() => {
+            this.playTone(freq, 0.15, 'sine', 0.3);
+          }, index * 80);
+        });
+        // Add a final triumphant chord
+        setTimeout(() => {
+          this.playTone(600, 0.3, 'sine', 0.4);
+          setTimeout(() => {
+            this.playTone(800, 0.3, 'sine', 0.4);
+            setTimeout(() => {
+              this.playTone(1000, 0.3, 'sine', 0.4);
+            }, 50);
+          }, 50);
+        }, frequencies.length * 80);
       }
     };
     
@@ -1793,8 +1850,22 @@
           x: Math.floor(Math.random() * GRID_SIZE),
           y: Math.floor(Math.random() * GRID_SIZE)
         };
-      } while (snake.some(segment => segment.x === newFood.x && segment.y === newFood.y));
+      } while (snake.some(segment => segment.x === newFood.x && segment.y === newFood.y) ||
+               food.some(f => f.x === newFood.x && f.y === newFood.y));
       return newFood;
+    }
+    
+    // Add food items to the board (for autodrive mode)
+    function addFood(count) {
+      if (!gameRunning || gameOver) return;
+      
+      for (let i = 0; i < count; i++) {
+        // Don't add food if we're at max score
+        if (score >= 4000) break;
+        const newFood = generateFood();
+        food.push(newFood);
+      }
+      draw();
     }
 
     function updateScores() {
@@ -1840,26 +1911,32 @@
         ctx.stroke();
       }
 
-      // Draw food with glow
-      const foodX = food.x * cellSize;
-      const foodY = food.y * cellSize;
-      
-      // Outer glow
-      const foodGradient = ctx.createRadialGradient(
-        foodX + cellSize / 2, foodY + cellSize / 2, 0,
-        foodX + cellSize / 2, foodY + cellSize / 2, cellSize / 2
-      );
-      foodGradient.addColorStop(0, 'rgba(255, 235, 59, 0.8)');
-      foodGradient.addColorStop(0.5, 'rgba(255, 235, 59, 0.4)');
-      foodGradient.addColorStop(1, 'rgba(255, 235, 59, 0)');
-      ctx.fillStyle = foodGradient;
-      ctx.fillRect(foodX, foodY, cellSize, cellSize);
-      
-      // Food square
-      ctx.fillStyle = '#ffeb3b';
-      ctx.shadowColor = '#ffeb3b';
-      ctx.shadowBlur = 10;
-      ctx.fillRect(foodX + 2, foodY + 2, cellSize - 4, cellSize - 4);
+      // Draw all food items with glow
+      if (!Array.isArray(food)) {
+        // Safety check: ensure food is an array
+        food = [{ x: 4, y: 0 }];
+      }
+      for (const foodItem of food) {
+        const foodX = foodItem.x * cellSize;
+        const foodY = foodItem.y * cellSize;
+        
+        // Outer glow
+        const foodGradient = ctx.createRadialGradient(
+          foodX + cellSize / 2, foodY + cellSize / 2, 0,
+          foodX + cellSize / 2, foodY + cellSize / 2, cellSize / 2
+        );
+        foodGradient.addColorStop(0, 'rgba(255, 235, 59, 0.8)');
+        foodGradient.addColorStop(0.5, 'rgba(255, 235, 59, 0.4)');
+        foodGradient.addColorStop(1, 'rgba(255, 235, 59, 0)');
+        ctx.fillStyle = foodGradient;
+        ctx.fillRect(foodX, foodY, cellSize, cellSize);
+        
+        // Food square
+        ctx.fillStyle = '#ffeb3b';
+        ctx.shadowColor = '#ffeb3b';
+        ctx.shadowBlur = 10;
+        ctx.fillRect(foodX + 2, foodY + 2, cellSize - 4, cellSize - 4);
+      }
       // Reset shadow after food
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
@@ -1985,15 +2062,32 @@
 
       snake.unshift(head);
 
-      // Check food collision
-      if (head.x === food.x && head.y === food.y) {
-        score += 10;
-        updateScores();
-        SoundManager.playEat();
-        
-        // Generate new food
-        food = generateFood();
-      } else {
+      // Check food collision with all food items
+      let ateFood = false;
+      for (let i = food.length - 1; i >= 0; i--) {
+        if (head.x === food[i].x && head.y === food[i].y) {
+          // Remove this food item
+          food.splice(i, 1);
+          score += 10;
+          updateScores();
+          SoundManager.playEat();
+          ateFood = true;
+          
+          // Check for victory (max score: 4000 = 400 cells * 10 points)
+          if (score >= 4000) {
+            victory();
+            return;
+          }
+          
+          // Generate new food if array is empty (but only if not at max score)
+          if (food.length === 0 && score < 4000) {
+            food.push(generateFood());
+          }
+          break;
+        }
+      }
+      
+      if (!ateFood) {
         snake.pop();
       }
 
@@ -2050,7 +2144,7 @@
       directionQueue = []; // Clear direction queue on restart
       // Don't regenerate food here - it should already be set at initialization
       // Food will only be regenerated when the snake eats it
-      score = 0;
+      score = 10; // Snake starts with 1 segment = 10 points
       gameOver = false;
       gamePaused = false;
       gameRunning = true;
@@ -2136,9 +2230,60 @@
       // Show start button after game over
       showStartButton();
     }
+    
+    function victory() {
+      if (!gameRunning) return;
+      
+      gameRunning = false;
+      gameOver = true;
+      
+      // Stop animation loop
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+      if (gameLoop) {
+        clearInterval(gameLoop);
+        gameLoop = null;
+      }
+      if (hyperSpeedLoopId) {
+        clearTimeout(hyperSpeedLoopId);
+        hyperSpeedLoopId = null;
+      }
+      
+      // Ensure score is exactly 4000
+      score = 4000;
+      updateScores();
+      
+      // Final render
+      draw();
+      
+      // Play celebration sound
+      SoundManager.playVictory();
+      
+      // Show victory message
+      showVictory();
+      // Show start button after victory
+      showStartButton();
+    }
 
     function showGameOver() {
       finalScoreEl.textContent = score;
+      // Reset to normal game over message
+      const flatlinedText = gameOverEl.querySelector('.flatlined-text');
+      const subtitle = gameOverEl.querySelector('.game-over-subtitle');
+      if (flatlinedText) flatlinedText.textContent = 'FLATLINED';
+      if (subtitle) subtitle.textContent = 'SYSTEM FAILURE DETECTED';
+      gameOverEl.classList.add('show');
+    }
+    
+    function showVictory() {
+      finalScoreEl.textContent = score;
+      // Change to victory message
+      const flatlinedText = gameOverEl.querySelector('.flatlined-text');
+      const subtitle = gameOverEl.querySelector('.game-over-subtitle');
+      if (flatlinedText) flatlinedText.textContent = 'PERFECT SCORE';
+      if (subtitle) subtitle.textContent = 'MAX SCORE OF 4000 ACHIEVED';
       gameOverEl.classList.add('show');
     }
 
@@ -2158,11 +2303,117 @@
       }
     }
 
-    // AI Pathfinding for Autodrive - Intelligent algorithm that never loses
-    // Adaptive approach: aggressive when space is plentiful, conservative when space is tight
+    // Pre-computed Hamiltonian path that visits every cell exactly once
+    // Pattern matches spreadsheet: Row 1 A→T, Row 2 T→B, Row 3 B→T, etc., then up column A
+    let hamiltonianPath = null;
+    
+    function generateHamiltonianPath() {
+      const path = [];
+      
+      // Row 1 (y=0): A1 to T1 (x=0 to x=GRID_SIZE-1, going right)
+      // This ends at (GRID_SIZE-1, 0) = T1
+      for (let x = 0; x < GRID_SIZE; x++) {
+        path.push({ x, y: 0 });
+      }
+      
+      // Rows 2 to GRID_SIZE (y=1 to y=GRID_SIZE-1): Zigzag pattern
+      // Row 2 (y=1, even 1-indexed): T2 to B2 (x=GRID_SIZE-1 to x=1, going left)
+      // Row 3 (y=2, odd 1-indexed): B3 to T3 (x=1 to x=GRID_SIZE-1, going right)
+      // Row 4 (y=3, even 1-indexed): T4 to B4 (x=GRID_SIZE-1 to x=1, going left)
+      // etc.
+      for (let y = 1; y < GRID_SIZE; y++) {
+        if (y % 2 === 1) {
+          // Even row (1-indexed, y=1,3,5...): go left from T to B
+          // Start at T (x=GRID_SIZE-1) - this is adjacent to where we ended in previous row
+          for (let x = GRID_SIZE - 1; x >= 1; x--) {
+            path.push({ x, y });
+          }
+          // Ends at B (x=1, y)
+        } else {
+          // Odd row (1-indexed, y=2,4,6...): go right from B to T
+          // Start at B (x=1) - this is adjacent to where we ended in previous row
+          for (let x = 1; x < GRID_SIZE; x++) {
+            path.push({ x, y });
+          }
+          // Ends at T (x=GRID_SIZE-1, y)
+        }
+      }
+      
+      // After processing all rows, we end at either:
+      // - (1, GRID_SIZE-1) if last row was even (1-indexed) - which means y=GRID_SIZE-1 is odd
+      // - (GRID_SIZE-1, GRID_SIZE-1) if last row was odd (1-indexed) - which means y=GRID_SIZE-1 is even
+      // Check: GRID_SIZE-1 = 19, which is odd, so last row (y=19) is even (1-indexed)
+      // So we end at (1, GRID_SIZE-1) = B20
+      
+      // Go to A20 (x=0, y=GRID_SIZE-1) - this is adjacent to B20
+      path.push({ x: 0, y: GRID_SIZE - 1 });
+      
+      // Go up column A from A20 to A2 (skip A1 since it's already visited)
+      // This goes from (0, GRID_SIZE-1) to (0, 1)
+      for (let y = GRID_SIZE - 2; y >= 1; y--) {
+        path.push({ x: 0, y });
+      }
+      
+      // Verify path is continuous and visits all cells
+      const visited = new Set();
+      for (let i = 0; i < path.length; i++) {
+        const cell = path[i];
+        const key = `${cell.x},${cell.y}`;
+        if (visited.has(key)) {
+          console.error('Duplicate cell in path:', cell, 'at index', i);
+        }
+        visited.add(key);
+        
+        // Check continuity (except for last cell)
+        if (i < path.length - 1) {
+          const next = path[i + 1];
+          const dx = Math.abs(cell.x - next.x);
+          const dy = Math.abs(cell.y - next.y);
+          if (dx + dy !== 1) {
+            console.error('Path not continuous at index', i, cell, '->', next);
+          }
+        }
+      }
+      
+      if (visited.size !== GRID_SIZE * GRID_SIZE) {
+        console.warn('Path incomplete:', visited.size, 'expected', GRID_SIZE * GRID_SIZE);
+      }
+      if (path.length !== GRID_SIZE * GRID_SIZE) {
+        console.warn('Path length mismatch:', path.length, 'expected', GRID_SIZE * GRID_SIZE);
+      }
+      
+      return path;
+    }
+    
+    // Get the index of a cell in the Hamiltonian path
+    function getPathIndex(x, y) {
+      if (!hamiltonianPath) {
+        hamiltonianPath = generateHamiltonianPath();
+      }
+      for (let i = 0; i < hamiltonianPath.length; i++) {
+        if (hamiltonianPath[i].x === x && hamiltonianPath[i].y === y) {
+          return i;
+        }
+      }
+      return -1;
+    }
+    
+    // Get the next cell in the path from current position
+    function getNextInPath(x, y) {
+      if (!hamiltonianPath) {
+        hamiltonianPath = generateHamiltonianPath();
+      }
+      const currentIndex = getPathIndex(x, y);
+      if (currentIndex === -1 || currentIndex >= hamiltonianPath.length - 1) {
+        return null; // At end of path
+      }
+      return hamiltonianPath[currentIndex + 1];
+    }
+    
+    // AI Pathfinding for Autodrive - Simple Hamiltonian path following
+    // Just follows the predefined path, no additional logic needed
     function findPathToFood() {
       const head = snake[0];
-      const target = food;
       
       // Create a set of snake body positions (excluding tail which will move)
       const snakeBody = new Set();
@@ -2170,135 +2421,57 @@
         snakeBody.add(`${snake[i].x},${snake[i].y}`);
       }
       
-      const tail = snake[snake.length - 1];
-      const totalSpaces = GRID_SIZE * GRID_SIZE;
-      const freeSpaces = totalSpaces - snake.length;
-      const fillRatio = snake.length / totalSpaces;
+      // Get the next cell in the predefined path
+      const nextCell = getNextInPath(head.x, head.y);
       
-      // When snake is short (< 20% of board), be more aggressive
-      // When snake is long (> 80% of board), be very conservative
-      const isEarlyGame = fillRatio < 0.2;
-      const isLateGame = fillRatio > 0.8;
-      
-      const directions = [
-        { x: 0, y: -1 }, // up
-        { x: 1, y: 0 },  // right
-        { x: 0, y: 1 },  // down
-        { x: -1, y: 0 }  // left
-      ];
-      
-      // Try each direction and score it
-      const moves = [];
-      
-      for (const dir of directions) {
-        let newX = (head.x + dir.x + GRID_SIZE) % GRID_SIZE;
-        let newY = (head.y + dir.y + GRID_SIZE) % GRID_SIZE;
-        const key = `${newX},${newY}`;
-        
-        // Skip if would hit body
-        if (snakeBody.has(key)) {
-          continue;
-        }
-        
-        // Calculate distance to food
-        const dx = Math.min(Math.abs(newX - target.x), GRID_SIZE - Math.abs(newX - target.x));
-        const dy = Math.min(Math.abs(newY - target.y), GRID_SIZE - Math.abs(newY - target.y));
-        const distToFood = dx + dy;
-        const willEatFood = (newX === target.x && newY === target.y);
-        
-        // Simulate the move
-        const newSnakeBody = new Set(snakeBody);
-        newSnakeBody.delete(`${tail.x},${tail.y}`); // Remove tail (it moves forward)
-        newSnakeBody.add(key); // Add new head position
-        
-        let score = 0;
-        let isSafe = true;
-        
-        // Safety checks - more strict in late game
-        if (!isEarlyGame) {
-          // Check if we can reach the future tail position
-          const futureTail = snake.length > 1 ? snake[snake.length - 2] : tail;
-          const pathToTail = bfsPath({ x: newX, y: newY }, futureTail, newSnakeBody);
-          
-          if (!pathToTail || pathToTail.length === 0) {
-            // This move would trap us
-            if (isLateGame) {
-              // In late game, reject unsafe moves
-              continue;
-            } else {
-              // In mid game, heavily penalize but don't reject
-              score -= 10000;
-              isSafe = false;
-            }
-          } else {
-            score += 1000; // Safe move bonus
-          }
-        }
-        
-        // If about to eat food, check safety after growth
-        if (willEatFood && !isEarlyGame) {
-          const grownSnakeBody = new Set();
-          grownSnakeBody.add(`${newX},${newY}`);
-          for (let i = 0; i < snake.length; i++) {
-            grownSnakeBody.add(`${snake[i].x},${snake[i].y}`);
-          }
-          
-          const pathToTailAfterGrowth = bfsPath({ x: newX, y: newY }, tail, grownSnakeBody);
-          if (!pathToTailAfterGrowth || pathToTailAfterGrowth.length === 0) {
-            // Eating food would trap us
-            if (isLateGame || fillRatio > 0.5) {
-              // Reject if late/mid game
-              continue;
-            } else {
-              // In early game, still allow but penalize
-              score -= 5000;
-            }
-          }
-        }
-        
-        // Prefer moves toward food
-        if (willEatFood) {
-          score += 10000; // Huge bonus for eating food
-        } else {
-          score += (GRID_SIZE * 2 - distToFood) * 100; // Bonus for getting closer
-        }
-        
-        // In late game, check reachable space
-        if (isLateGame) {
-          const reachableSpaces = countReachableSpaces({ x: newX, y: newY }, newSnakeBody);
-          if (reachableSpaces < snake.length) {
-            // Not enough space - reject in late game
-            continue;
-          }
-          score += reachableSpaces; // Prefer moves with more reachable space
-        }
-        
-        moves.push({ dir, score, distToFood, willEatFood, isSafe });
+      if (!nextCell) {
+        // At the end of the path - game should be complete
+        // Fallback: continue in current direction
+        const currentDir = snake.length > 1 
+          ? { x: snake[0].x - snake[1].x, y: snake[0].y - snake[1].y }
+          : { x: 1, y: 0 };
+        return currentDir;
       }
       
-      // If no moves exist, emergency fallback
-      if (moves.length === 0) {
-        for (const dir of directions) {
-          let newX = (head.x + dir.x + GRID_SIZE) % GRID_SIZE;
-          let newY = (head.y + dir.y + GRID_SIZE) % GRID_SIZE;
-          const key = `${newX},${newY}`;
-          if (!snakeBody.has(key)) {
-            return dir;
-          }
-        }
-        return direction;
+      // Calculate direction to the next cell
+      const dirX = nextCell.x - head.x;
+      const dirY = nextCell.y - head.y;
+      
+      // Verify this is an adjacent cell (distance = 1)
+      if (Math.abs(dirX) + Math.abs(dirY) !== 1) {
+        console.error('Next cell in path is not adjacent!', head, nextCell);
+        const currentDir = snake.length > 1 
+          ? { x: snake[0].x - snake[1].x, y: snake[0].y - snake[1].y }
+          : { x: 1, y: 0 };
+        return currentDir;
       }
       
-      // Sort by score (highest first)
-      moves.sort((a, b) => {
-        // Always prefer safe moves over unsafe ones
-        if (a.isSafe && !b.isSafe) return -1;
-        if (!a.isSafe && b.isSafe) return 1;
-        // Then by score
-        return b.score - a.score;
-      });
+      // Normalize direction
+      const normalizedX = dirX !== 0 ? (dirX > 0 ? 1 : -1) : 0;
+      const normalizedY = dirY !== 0 ? (dirY > 0 ? 1 : -1) : 0;
       
-      return moves[0].dir;
+      // Check if this move is safe (won't hit body, excluding tail)
+      const key = `${nextCell.x},${nextCell.y}`;
+      if (!snakeBody.has(key) && nextCell.x >= 0 && nextCell.x < GRID_SIZE && 
+          nextCell.y >= 0 && nextCell.y < GRID_SIZE) {
+        return { x: normalizedX, y: normalizedY };
+      }
+      
+      // If blocked, something is wrong - but this shouldn't happen with proper path
+      console.warn('Next cell in path is blocked:', nextCell);
+      
+      // Fallback: try current direction
+      const currentDir = snake.length > 1 
+        ? { x: snake[0].x - snake[1].x, y: snake[0].y - snake[1].y }
+        : { x: 1, y: 0 };
+      const newX = head.x + currentDir.x;
+      const newY = head.y + currentDir.y;
+      if (newX >= 0 && newX < GRID_SIZE && newY >= 0 && newY < GRID_SIZE && 
+          !snakeBody.has(`${newX},${newY}`)) {
+        return currentDir;
+      }
+      
+      return { x: 1, y: 0 }; // Last resort
     }
     
     // BFS to find shortest path between two points
@@ -2624,7 +2797,7 @@
       gameRunning = false;
       gameOver = false;
       gamePaused = false;
-      score = 0;
+      score = 10; // Snake starts with 1 segment = 10 points
       snake = [{ x: 0, y: 0 }]; // Start at top left
       direction = { x: 1, y: 0 };
       nextDirection = { x: 1, y: 0 };
@@ -2633,7 +2806,7 @@
       lastMoveTime = 0;
       
       // Set initial food position (cell 4, top row) for immediate catch
-      food = { x: 4, y: 0 };
+      food = [{ x: 4, y: 0 }];
       
       // Hide game over screen if it's showing
       hideGameOver();
@@ -2668,7 +2841,7 @@
       gameRunning = false;
       gameOver = false;
       gamePaused = false;
-      score = 0;
+      score = 10; // Snake starts with 1 segment = 10 points
       snake = [{ x: 0, y: 0 }]; // Start at top left
       direction = { x: 1, y: 0 };
       nextDirection = { x: 1, y: 0 };
@@ -2677,7 +2850,7 @@
       lastMoveTime = 0;
       
       // Set initial food position (cell 4, top row) for immediate catch
-      food = { x: 4, y: 0 };
+      food = [{ x: 4, y: 0 }];
       
       // Hide game over screen
       hideGameOver();
@@ -2724,6 +2897,7 @@
     const autodrivePanel = document.getElementById('autodrivePanel');
     const autodriveSpeedSlider = document.getElementById('autodriveSpeed');
     const autodriveSpeedValue = document.getElementById('autodriveSpeedValue');
+    const autodriveHyperSpeed = document.getElementById('autodriveHyperSpeed');
     const autodriveStop = document.getElementById('autodriveStop');
 
     if (autodriveBtn && autodrivePanel) {
@@ -2752,6 +2926,16 @@
       autodriveSpeedSlider.addEventListener('input', (e) => {
         autodriveSpeed = parseFloat(e.target.value);
         autodriveSpeedValue.textContent = autodriveSpeed + 'x';
+      });
+    }
+
+    if (autodriveHyperSpeed && autodriveSpeedSlider && autodriveSpeedValue) {
+      autodriveHyperSpeed.addEventListener('click', () => {
+        // Set to maximum speed (10000x)
+        const maxSpeed = 10000;
+        autodriveSpeed = maxSpeed;
+        autodriveSpeedSlider.value = maxSpeed;
+        autodriveSpeedValue.textContent = maxSpeed + 'x';
       });
     }
 
@@ -2853,7 +3037,7 @@
     });
 
     // Initialize - set initial food position (cell 4, top row) for immediate catch
-    food = { x: 4, y: 0 };
+    food = [{ x: 4, y: 0 }];
     updateScores();
     draw();
     
