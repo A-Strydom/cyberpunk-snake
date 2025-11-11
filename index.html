@@ -445,6 +445,181 @@
     #soundBtn.muted {
       opacity: 0.5;
     }
+    #autodriveBtn {
+      background: rgba(10, 10, 30, 0.9);
+      color: #00f5ff;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 14px;
+      padding: 7px 20px 7px 20px;
+      cursor: pointer;
+      text-shadow: 0 0 6px #00f5ff;
+      box-shadow: 0 0 8px rgba(255, 107, 53, 0.5);
+      transition: background 0.2s ease, box-shadow 0.2s ease, text-shadow 0.2s ease;
+      text-transform: uppercase;
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid #ff6b35;
+      outline: none;
+    }
+    #autodriveBtn::before {
+      content: '';
+      position: absolute;
+      left: 4px;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: #ff6b35;
+      pointer-events: none;
+      z-index: 1;
+    }
+    #autodriveBtn .material-icons {
+      font-family: 'Material Icons';
+      font-size: 16px;
+      color: #00f5ff;
+      text-shadow: 0 0 8px #00f5ff;
+      margin-left: auto;
+      position: relative;
+      z-index: 1;
+      display: inline-block;
+      line-height: 1;
+    }
+    #autodriveBtn:hover {
+      background: rgba(10, 10, 30, 0.95);
+      box-shadow: 0 0 15px rgba(255, 107, 53, 0.8);
+      text-shadow: 0 0 10px #00f5ff;
+    }
+    #autodriveBtn.active {
+      background: rgba(0, 245, 255, 0.1);
+      border-color: #00f5ff;
+      box-shadow: 0 0 15px rgba(0, 245, 255, 0.8);
+    }
+    #autodrivePanel {
+      position: fixed;
+      top: 40px;
+      right: 80px;
+      background: rgba(10, 10, 30, 0.95);
+      border: 2px solid #00f5ff;
+      border-radius: 8px;
+      padding: 15px 20px;
+      min-width: 280px;
+      box-shadow: 0 0 20px rgba(0, 245, 255, 0.5), inset 0 0 10px rgba(0, 245, 255, 0.1);
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+    #autodrivePanel.show {
+      display: flex;
+    }
+    .autodrive-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    .autodrive-panel-header h3 {
+      color: #00f5ff;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 14px;
+      margin: 0;
+      text-shadow: 0 0 8px #00f5ff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .autodrive-panel-header .autodrive-indicator {
+      width: 8px;
+      height: 8px;
+      background: #ff6b35;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #ff6b35;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .autodrive-controls {
+      margin: 0;
+    }
+    .autodrive-controls label {
+      color: #00f5ff;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      display: block;
+      margin-bottom: 8px;
+      text-shadow: 0 0 4px rgba(0, 245, 255, 0.3);
+    }
+    .autodrive-speed-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .autodrive-speed-slider {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      background: rgba(0, 245, 255, 0.3);
+      border-radius: 2px;
+      outline: none;
+    }
+    .autodrive-speed-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #00f5ff;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 8px #00f5ff;
+      transition: box-shadow 0.2s ease;
+    }
+    .autodrive-speed-slider::-webkit-slider-thumb:hover {
+      box-shadow: 0 0 12px #00f5ff;
+    }
+    .autodrive-speed-slider::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: #00f5ff;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 8px #00f5ff;
+    }
+    .autodrive-speed-value {
+      color: #00f5ff;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 14px;
+      min-width: 35px;
+      text-align: right;
+      text-shadow: 0 0 6px #00f5ff;
+    }
+    #autodriveStop {
+      background: transparent;
+      border: 1px solid #ff6b35;
+      color: #ff6b35;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      padding: 8px 20px;
+      cursor: pointer;
+      text-shadow: 0 0 6px #ff6b35;
+      box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+      transition: all 0.3s ease;
+      border-radius: 4px;
+      text-transform: uppercase;
+      width: 100%;
+      margin-top: 5px;
+    }
+    #autodriveStop:hover {
+      background: rgba(255, 107, 53, 0.1);
+      color: #ff0040;
+      border-color: #ff0040;
+      box-shadow: 0 0 15px rgba(255, 0, 64, 0.8);
+      transform: scale(1.02);
+      text-shadow: 0 0 10px #ff0040;
+    }
     @keyframes buttonGlitch {
       0%, 100% { transform: translateX(0); }
       10% { transform: translateX(-2px) translateY(1px); }
@@ -958,6 +1133,40 @@
         font-size: 24px;
       }
 
+      #autodriveBtn {
+        font-size: 11px;
+        padding: 8px 12px;
+        min-height: 40px;
+      }
+
+      #autodriveBtn .material-icons {
+        font-size: 16px;
+      }
+
+      #autodrivePanel {
+        top: 10px;
+        right: 10px;
+        min-width: 200px;
+        padding: 10px 12px;
+      }
+
+      .autodrive-panel-header h3 {
+        font-size: 12px;
+      }
+
+      .autodrive-controls label {
+        font-size: 11px;
+      }
+
+      .autodrive-speed-value {
+        font-size: 12px;
+      }
+
+      #autodriveStop {
+        font-size: 11px;
+        padding: 6px 15px;
+      }
+
       #soundBtn {
         font-size: 11px;
         padding: 8px 12px;
@@ -1111,11 +1320,45 @@
         max-width: calc(55% - 15px);
       }
 
+      #autodrivePanel {
+        top: 8px;
+        right: 8px;
+        min-width: 180px;
+        padding: 8px 10px;
+      }
+
+      .autodrive-panel-header h3 {
+        font-size: 11px;
+      }
+
+      .autodrive-controls label {
+        font-size: 10px;
+      }
+
+      .autodrive-speed-value {
+        font-size: 11px;
+      }
+
+      #autodriveStop {
+        font-size: 10px;
+        padding: 5px 12px;
+      }
+
       #restart {
         font-size: 10px;
         padding: 6px 10px;
         min-width: 65px;
         min-height: 38px;
+      }
+
+      #autodriveBtn {
+        font-size: 10px;
+        padding: 6px 10px;
+        min-height: 38px;
+      }
+
+      #autodriveBtn .material-icons {
+        font-size: 14px;
       }
 
       .score-display strong {
@@ -1209,6 +1452,7 @@
   <div class="geometric-lines"></div>
   <div class="top-right-controls">
     <button id="restart" title="Restart">REBOOT<span class="material-icons">power_settings_new</span></button>
+    <button id="autodriveBtn" title="Autodrive Mode"><span class="material-icons">settings</span>AUTODRIVE</button>
     <button id="soundBtn" title="Toggle Sound"><span class="material-icons">volume_up</span></button>
   </div>
   <div id="game-container">
@@ -1264,6 +1508,20 @@
         <li>Keep moving - the snake never stops!</li>
       </ul>
     </div>
+  </div>
+  <div id="autodrivePanel">
+    <div class="autodrive-panel-header">
+      <h3>AUTODRIVE MODE</h3>
+      <div class="autodrive-indicator"></div>
+    </div>
+    <div class="autodrive-controls">
+      <label>SPEED:</label>
+      <div class="autodrive-speed-container">
+        <input type="range" id="autodriveSpeed" class="autodrive-speed-slider" min="0.5" max="5" step="0.5" value="1">
+        <span id="autodriveSpeedValue" class="autodrive-speed-value">1x</span>
+      </div>
+    </div>
+    <button id="autodriveStop">STOP</button>
   </div>
   <div id="confirmModal">
     <div class="help-content">
@@ -1330,6 +1588,8 @@
     let currentSpeed = INITIAL_SPEED;
     let lastMoveTime = 0;
     let animationFrameId = null;
+    let autodriveActive = false;
+    let autodriveSpeed = 1.0;
 
     // Responsive canvas sizing
     function getCanvasSize() {
@@ -1753,8 +2013,21 @@
           lastMoveTime = timestamp;
         }
         
+        // Apply autodrive speed multiplier
+        const effectiveSpeed = autodriveActive ? currentSpeed / autodriveSpeed : currentSpeed;
+        
         const elapsed = timestamp - lastMoveTime;
-        if (elapsed >= currentSpeed) {
+        if (elapsed >= effectiveSpeed) {
+          // Autodrive AI: calculate direction before moving
+          if (autodriveActive) {
+            const aiDirection = findPathToFood();
+            if (aiDirection) {
+              // Clear queue and set AI direction
+              directionQueue = [];
+              nextDirection = aiDirection;
+            }
+          }
+          
           moveSnake();
           lastMoveTime = timestamp;
         }
@@ -1783,11 +2056,14 @@
       gameRunning = true;
       currentSpeed = INITIAL_SPEED;
       lastMoveTime = 0;
+      autodriveActive = false; // Reset autodrive on new game
       
       updateScores();
       hideGameOver();
       hideStartButton();
       updatePauseButton();
+      if (autodriveBtn) autodriveBtn.classList.remove('active');
+      if (autodrivePanel) autodrivePanel.classList.remove('show');
       draw();
       
       // Stop any existing loop
@@ -1882,9 +2158,305 @@
       }
     }
 
+    // AI Pathfinding for Autodrive - Intelligent algorithm that never loses
+    // Adaptive approach: aggressive when space is plentiful, conservative when space is tight
+    function findPathToFood() {
+      const head = snake[0];
+      const target = food;
+      
+      // Create a set of snake body positions (excluding tail which will move)
+      const snakeBody = new Set();
+      for (let i = 0; i < snake.length - 1; i++) {
+        snakeBody.add(`${snake[i].x},${snake[i].y}`);
+      }
+      
+      const tail = snake[snake.length - 1];
+      const totalSpaces = GRID_SIZE * GRID_SIZE;
+      const freeSpaces = totalSpaces - snake.length;
+      const fillRatio = snake.length / totalSpaces;
+      
+      // When snake is short (< 20% of board), be more aggressive
+      // When snake is long (> 80% of board), be very conservative
+      const isEarlyGame = fillRatio < 0.2;
+      const isLateGame = fillRatio > 0.8;
+      
+      const directions = [
+        { x: 0, y: -1 }, // up
+        { x: 1, y: 0 },  // right
+        { x: 0, y: 1 },  // down
+        { x: -1, y: 0 }  // left
+      ];
+      
+      // Try each direction and score it
+      const moves = [];
+      
+      for (const dir of directions) {
+        let newX = (head.x + dir.x + GRID_SIZE) % GRID_SIZE;
+        let newY = (head.y + dir.y + GRID_SIZE) % GRID_SIZE;
+        const key = `${newX},${newY}`;
+        
+        // Skip if would hit body
+        if (snakeBody.has(key)) {
+          continue;
+        }
+        
+        // Calculate distance to food
+        const dx = Math.min(Math.abs(newX - target.x), GRID_SIZE - Math.abs(newX - target.x));
+        const dy = Math.min(Math.abs(newY - target.y), GRID_SIZE - Math.abs(newY - target.y));
+        const distToFood = dx + dy;
+        const willEatFood = (newX === target.x && newY === target.y);
+        
+        // Simulate the move
+        const newSnakeBody = new Set(snakeBody);
+        newSnakeBody.delete(`${tail.x},${tail.y}`); // Remove tail (it moves forward)
+        newSnakeBody.add(key); // Add new head position
+        
+        let score = 0;
+        let isSafe = true;
+        
+        // Safety checks - more strict in late game
+        if (!isEarlyGame) {
+          // Check if we can reach the future tail position
+          const futureTail = snake.length > 1 ? snake[snake.length - 2] : tail;
+          const pathToTail = bfsPath({ x: newX, y: newY }, futureTail, newSnakeBody);
+          
+          if (!pathToTail || pathToTail.length === 0) {
+            // This move would trap us
+            if (isLateGame) {
+              // In late game, reject unsafe moves
+              continue;
+            } else {
+              // In mid game, heavily penalize but don't reject
+              score -= 10000;
+              isSafe = false;
+            }
+          } else {
+            score += 1000; // Safe move bonus
+          }
+        }
+        
+        // If about to eat food, check safety after growth
+        if (willEatFood && !isEarlyGame) {
+          const grownSnakeBody = new Set();
+          grownSnakeBody.add(`${newX},${newY}`);
+          for (let i = 0; i < snake.length; i++) {
+            grownSnakeBody.add(`${snake[i].x},${snake[i].y}`);
+          }
+          
+          const pathToTailAfterGrowth = bfsPath({ x: newX, y: newY }, tail, grownSnakeBody);
+          if (!pathToTailAfterGrowth || pathToTailAfterGrowth.length === 0) {
+            // Eating food would trap us
+            if (isLateGame || fillRatio > 0.5) {
+              // Reject if late/mid game
+              continue;
+            } else {
+              // In early game, still allow but penalize
+              score -= 5000;
+            }
+          }
+        }
+        
+        // Prefer moves toward food
+        if (willEatFood) {
+          score += 10000; // Huge bonus for eating food
+        } else {
+          score += (GRID_SIZE * 2 - distToFood) * 100; // Bonus for getting closer
+        }
+        
+        // In late game, check reachable space
+        if (isLateGame) {
+          const reachableSpaces = countReachableSpaces({ x: newX, y: newY }, newSnakeBody);
+          if (reachableSpaces < snake.length) {
+            // Not enough space - reject in late game
+            continue;
+          }
+          score += reachableSpaces; // Prefer moves with more reachable space
+        }
+        
+        moves.push({ dir, score, distToFood, willEatFood, isSafe });
+      }
+      
+      // If no moves exist, emergency fallback
+      if (moves.length === 0) {
+        for (const dir of directions) {
+          let newX = (head.x + dir.x + GRID_SIZE) % GRID_SIZE;
+          let newY = (head.y + dir.y + GRID_SIZE) % GRID_SIZE;
+          const key = `${newX},${newY}`;
+          if (!snakeBody.has(key)) {
+            return dir;
+          }
+        }
+        return direction;
+      }
+      
+      // Sort by score (highest first)
+      moves.sort((a, b) => {
+        // Always prefer safe moves over unsafe ones
+        if (a.isSafe && !b.isSafe) return -1;
+        if (!a.isSafe && b.isSafe) return 1;
+        // Then by score
+        return b.score - a.score;
+      });
+      
+      return moves[0].dir;
+    }
+    
+    // BFS to find shortest path between two points
+    function bfsPath(start, target, obstacles) {
+      const queue = [{ x: start.x, y: start.y, path: [] }];
+      const visited = new Set();
+      visited.add(`${start.x},${start.y}`);
+      
+      const directions = [
+        { x: 0, y: -1 }, // up
+        { x: 1, y: 0 },  // right
+        { x: 0, y: 1 },  // down
+        { x: -1, y: 0 }  // left
+      ];
+      
+      while (queue.length > 0) {
+        const current = queue.shift();
+        
+        if (current.x === target.x && current.y === target.y) {
+          return current.path;
+        }
+        
+        for (const dir of directions) {
+          let newX = (current.x + dir.x + GRID_SIZE) % GRID_SIZE;
+          let newY = (current.y + dir.y + GRID_SIZE) % GRID_SIZE;
+          
+          const key = `${newX},${newY}`;
+          
+          if (!visited.has(key) && !obstacles.has(key)) {
+            visited.add(key);
+            queue.push({
+              x: newX,
+              y: newY,
+              path: [...current.path, dir]
+            });
+          }
+        }
+      }
+      
+      return null; // No path found
+    }
+    
+    // Find the safest move that maximizes future options
+    function findSafeMove(head, snakeBody, target) {
+      const directions = [
+        { x: 0, y: -1 }, // up
+        { x: 1, y: 0 },  // right
+        { x: 0, y: 1 },  // down
+        { x: -1, y: 0 }  // left
+      ];
+      
+      // Score each possible move
+      const moves = [];
+      
+      for (const dir of directions) {
+        let newX = (head.x + dir.x + GRID_SIZE) % GRID_SIZE;
+        let newY = (head.y + dir.y + GRID_SIZE) % GRID_SIZE;
+        
+        const key = `${newX},${newY}`;
+        
+        // Skip if would hit body
+        if (snakeBody.has(key)) {
+          continue;
+        }
+        
+        // Calculate score for this move
+        let score = 0;
+        
+        // Check if this move is safe (can reach tail after moving)
+        const newSnakeBody = new Set(snakeBody);
+        newSnakeBody.delete(`${snake[snake.length - 1].x},${snake[snake.length - 1].y}`); // Remove tail
+        newSnakeBody.add(key); // Add new head position
+        
+        const tail = snake[snake.length - 1];
+        const pathToTail = bfsPath({ x: newX, y: newY }, tail, newSnakeBody);
+        
+        if (pathToTail && pathToTail.length > 0) {
+          score += 1000; // Safe move - can reach tail
+        } else {
+          // Unsafe move, but might be necessary
+          score -= 500;
+        }
+        
+        // Prefer moves that get closer to food (with wrapping)
+        const dx = Math.min(Math.abs(newX - target.x), GRID_SIZE - Math.abs(newX - target.x));
+        const dy = Math.min(Math.abs(newY - target.y), GRID_SIZE - Math.abs(newY - target.y));
+        const wrappedDistToFood = dx + dy;
+        score += (GRID_SIZE * 2 - wrappedDistToFood) * 10;
+        
+        // Count how many free spaces are reachable from this position
+        const reachable = countReachableSpaces({ x: newX, y: newY }, newSnakeBody);
+        score += reachable;
+        
+        moves.push({ dir, score, newX, newY });
+      }
+      
+      // Sort by score (highest first)
+      moves.sort((a, b) => b.score - a.score);
+      
+      // Return best move, or current direction if no safe moves
+      if (moves.length > 0 && moves[0].score > -500) {
+        return moves[0].dir;
+      }
+      
+      // Last resort: try to continue in current direction if safe
+      const currentDir = direction;
+      let newX = (head.x + currentDir.x + GRID_SIZE) % GRID_SIZE;
+      let newY = (head.y + currentDir.y + GRID_SIZE) % GRID_SIZE;
+      const key = `${newX},${newY}`;
+      if (!snakeBody.has(key)) {
+        return currentDir;
+      }
+      
+      // Any move is better than crashing
+      return moves.length > 0 ? moves[0].dir : currentDir;
+    }
+    
+    // Count how many spaces are reachable from a position (flood fill)
+    function countReachableSpaces(start, obstacles) {
+      const queue = [start];
+      const visited = new Set();
+      visited.add(`${start.x},${start.y}`);
+      
+      const directions = [
+        { x: 0, y: -1 }, // up
+        { x: 1, y: 0 },  // right
+        { x: 0, y: 1 },  // down
+        { x: -1, y: 0 }  // left
+      ];
+      
+      let count = 0;
+      
+      while (queue.length > 0) {
+        const current = queue.shift();
+        count++;
+        
+        for (const dir of directions) {
+          let newX = (current.x + dir.x + GRID_SIZE) % GRID_SIZE;
+          let newY = (current.y + dir.y + GRID_SIZE) % GRID_SIZE;
+          
+          const key = `${newX},${newY}`;
+          
+          if (!visited.has(key) && !obstacles.has(key)) {
+            visited.add(key);
+            queue.push({ x: newX, y: newY });
+          }
+        }
+      }
+      
+      return count;
+    }
+
     function changeDirection(newDir) {
       // Don't auto-start on direction change - user must press start button
       if (!gameRunning || gameOver || gamePaused) return;
+      
+      // Don't allow manual direction changes when autodrive is active
+      if (autodriveActive) return;
       
       // Determine what direction to check against
       // Use the last queued direction if queue exists, otherwise use nextDirection
@@ -2144,6 +2716,55 @@
     if (soundBtn) {
       soundBtn.addEventListener('click', () => {
         SoundManager.toggle();
+      });
+    }
+
+    // Autodrive button and controls
+    const autodriveBtn = document.getElementById('autodriveBtn');
+    const autodrivePanel = document.getElementById('autodrivePanel');
+    const autodriveSpeedSlider = document.getElementById('autodriveSpeed');
+    const autodriveSpeedValue = document.getElementById('autodriveSpeedValue');
+    const autodriveStop = document.getElementById('autodriveStop');
+
+    if (autodriveBtn && autodrivePanel) {
+      autodriveBtn.addEventListener('click', () => {
+        if (!gameRunning || gameOver) {
+          // Start game first if not running
+          startGame();
+        }
+        
+        if (autodriveActive) {
+          // Stop autodrive
+          autodriveActive = false;
+          autodriveBtn.classList.remove('active');
+          autodrivePanel.classList.remove('show');
+        } else {
+          // Start autodrive
+          autodriveActive = true;
+          autodriveBtn.classList.add('active');
+          autodrivePanel.classList.add('show');
+          gamePaused = false; // Ensure game is not paused
+        }
+      });
+    }
+
+    if (autodriveSpeedSlider && autodriveSpeedValue) {
+      autodriveSpeedSlider.addEventListener('input', (e) => {
+        autodriveSpeed = parseFloat(e.target.value);
+        autodriveSpeedValue.textContent = autodriveSpeed + 'x';
+      });
+    }
+
+    if (autodriveStop) {
+      autodriveStop.addEventListener('click', () => {
+        autodriveActive = false;
+        autodriveBtn.classList.remove('active');
+        autodrivePanel.classList.remove('show');
+        // Pause the game when stopping autodrive
+        if (gameRunning && !gameOver) {
+          gamePaused = true;
+          updatePauseButton();
+        }
       });
     }
 
