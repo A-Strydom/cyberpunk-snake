@@ -2184,7 +2184,7 @@
           if (this.audioContext.state === 'suspended') return;
           
           const now = this.audioContext.currentTime;
-          const startTime = now + 0.001; // Small delay to prevent clicks
+          const startTime = now + 0.01; // Longer delay to ensure gain envelope is set before oscillator starts
           const oscillator = this.audioContext.createOscillator();
           const gainNode = this.audioContext.createGain();
           
@@ -2196,12 +2196,14 @@
           oscillator.frequency.setValueAtTime(frequency, startTime);
           
           // Smooth envelope with exponential curves to prevent clicks/pops
-          const attackTime = 0.005; // Slightly longer attack for smoother start
+          const attackTime = 0.02; // Longer attack (20ms) for smooth, click-free start
           const releaseTime = Math.min(0.02, duration * 0.3); // Release time (20ms or 30% of duration)
           const sustainTime = Math.max(0, duration - attackTime - releaseTime);
           
-          // Set initial gain to very small value (exponential ramps can't start from 0)
-          gainNode.gain.setValueAtTime(0.0001, startTime);
+          // Set initial gain BEFORE oscillator starts to prevent clicks
+          // Use a very small value (exponential ramps can't start from 0)
+          const initialGain = 0.00001;
+          gainNode.gain.setValueAtTime(initialGain, now); // Set immediately, before startTime
           
           // Smooth attack using exponential ramp
           gainNode.gain.exponentialRampToValueAtTime(volume, startTime + attackTime);
@@ -2212,7 +2214,7 @@
           }
           
           // Smooth release using exponential ramp
-          gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+          gainNode.gain.exponentialRampToValueAtTime(initialGain, startTime + duration);
           
           oscillator.start(startTime);
           oscillator.stop(startTime + duration + 0.01); // Small buffer for cleanup
@@ -3521,11 +3523,7 @@
         return;
       }
       
-      // Prevent moving in the same direction (snake can't move into itself)
-      if (newDir.x === currentDir.x && newDir.y === currentDir.y) {
-        SoundManager.playInvalidMove();
-        return;
-      }
+      // Allow moving in the same direction (no need to prevent this)
       
       // Determine what direction to check against for queue
       // Use the last queued direction if queue exists, otherwise use nextDirection
