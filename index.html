@@ -555,6 +555,7 @@
       display: flex;
       align-items: center;
       gap: 12px;
+      margin-bottom: 12px;
     }
     .autodrive-speed-slider {
       flex: 1;
@@ -596,37 +597,13 @@
       text-align: right;
       text-shadow: 0 0 6px #00f5ff;
     }
-    #autodriveHyperSpeed {
-      background: transparent;
-      border: 1px solid #00f5ff;
-      color: #00f5ff;
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 11px;
-      padding: 6px 15px;
-      cursor: pointer;
-      text-shadow: 0 0 6px #00f5ff;
-      box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
-      transition: all 0.3s ease;
-      border-radius: 4px;
-      text-transform: uppercase;
-      width: 100%;
-      margin-top: 8px;
-    }
-    #autodriveHyperSpeed:hover {
-      background: rgba(0, 245, 255, 0.1);
-      color: #00ffff;
-      border-color: #00ffff;
-      box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
-      transform: scale(1.02);
-      text-shadow: 0 0 15px #00ffff;
-    }
     #spawnSnack {
       background: transparent;
       border: 1px solid #ffeb3b;
       color: #ffeb3b;
       font-family: 'Share Tech Mono', monospace;
-      font-size: 11px;
-      padding: 6px 15px;
+      font-size: 12px;
+      padding: 8px 20px;
       cursor: pointer;
       text-shadow: 0 0 6px #ffeb3b;
       box-shadow: 0 0 10px rgba(255, 235, 59, 0.5);
@@ -634,7 +611,7 @@
       border-radius: 4px;
       text-transform: uppercase;
       width: 100%;
-      margin-top: 8px;
+      margin-top: 5px;
     }
     #spawnSnack:hover {
       background: rgba(255, 235, 59, 0.1);
@@ -1213,14 +1190,10 @@
         font-size: 12px;
       }
 
-      #autodriveHyperSpeed {
-        font-size: 10px;
-        padding: 5px 12px;
-      }
 
       #spawnSnack {
-        font-size: 10px;
-        padding: 5px 12px;
+        font-size: 11px;
+        padding: 6px 15px;
       }
 
       #autodriveStop {
@@ -1400,14 +1373,10 @@
         font-size: 11px;
       }
 
-      #autodriveHyperSpeed {
-        font-size: 9px;
-        padding: 4px 10px;
-      }
 
       #spawnSnack {
-        font-size: 9px;
-        padding: 4px 10px;
+        font-size: 10px;
+        padding: 5px 12px;
       }
 
       #autodriveStop {
@@ -1588,11 +1557,10 @@
     <div class="autodrive-controls">
       <label>SPEED:</label>
       <div class="autodrive-speed-container">
-        <input type="range" id="autodriveSpeed" class="autodrive-speed-slider" min="0.5" max="100" step="0.5" value="1">
+        <input type="range" id="autodriveSpeed" class="autodrive-speed-slider" min="0.5" max="10" step="0.5" value="1">
         <span id="autodriveSpeedValue" class="autodrive-speed-value">1x</span>
       </div>
-      <button id="autodriveHyperSpeed">HYPER SPEED</button>
-      <button id="spawnSnack">SPAWN SNACK</button>
+      <button id="spawnSnack">SPAWN SNACKS</button>
     </div>
     <button id="autodriveStop">STOP</button>
   </div>
@@ -2733,10 +2701,53 @@
           break;
         case ' ':
           e.preventDefault();
-          if (gameRunning && !gameOver) {
+          // If game over screen is showing, restart the game
+          if (gameOverEl && gameOverEl.classList.contains('show')) {
+            // Play glitch sound like reboot button
+            SoundManager.playGlitch();
+            
+            // Add glitching animation to canvas
+            canvas.classList.add('glitching');
+            setTimeout(() => {
+              canvas.classList.remove('glitching');
+            }, 500);
+            
+            // Stop any existing loops first
+            if (animationFrameId) {
+              cancelAnimationFrame(animationFrameId);
+              animationFrameId = null;
+            }
+            if (gameLoop) {
+              clearInterval(gameLoop);
+              gameLoop = null;
+            }
+            
+            // Reset all game state before restarting
+            gameRunning = false;
+            gameOver = false;
+            gamePaused = false;
+            score = 10; // Snake starts with 1 segment = 10 points
+            snake = [{ x: 0, y: 0 }]; // Start at top left
+            direction = { x: 1, y: 0 };
+            nextDirection = { x: 1, y: 0 };
+            directionQueue = [];
+            currentSpeed = INITIAL_SPEED;
+            lastMoveTime = 0;
+            
+            // Set initial food position (cell 4, top row) for immediate catch
+            food = [{ x: 4, y: 0 }];
+            
+            // Hide game over screen and show start button (don't auto-start)
+            hideGameOver();
+            updateScores();
+            showStartButton();
+            draw();
+          } else if (gameRunning && !gameOver) {
             togglePause();
+          } else if (!gameRunning && !gameOver) {
+            // Start the game if not running and not on game over screen
+            startGame();
           }
-          // Don't auto-start on spacebar - user must press start button
           break;
       }
     });
@@ -2935,7 +2946,6 @@
     const autodrivePanel = document.getElementById('autodrivePanel');
     const autodriveSpeedSlider = document.getElementById('autodriveSpeed');
     const autodriveSpeedValue = document.getElementById('autodriveSpeedValue');
-    const autodriveHyperSpeed = document.getElementById('autodriveHyperSpeed');
     const autodriveStop = document.getElementById('autodriveStop');
 
     if (autodriveBtn && autodrivePanel) {
@@ -2967,16 +2977,6 @@
       });
     }
 
-    if (autodriveHyperSpeed && autodriveSpeedSlider && autodriveSpeedValue) {
-      autodriveHyperSpeed.addEventListener('click', () => {
-        // Set to maximum speed (100x)
-        const maxSpeed = 100;
-        autodriveSpeed = maxSpeed;
-        autodriveSpeedSlider.value = maxSpeed;
-        autodriveSpeedValue.textContent = maxSpeed + 'x';
-      });
-    }
-
     const spawnSnackBtn = document.getElementById('spawnSnack');
     if (spawnSnackBtn) {
       spawnSnackBtn.addEventListener('click', () => {
@@ -2984,9 +2984,39 @@
           // Don't spawn if we're at max score
           if (score >= 4000) return;
           
-          // Spawn a single snack in an open cell
-          const newFood = generateFood();
-          food.push(newFood);
+          // Calculate empty squares (total squares - snake - existing food)
+          const totalSquares = GRID_SIZE * GRID_SIZE;
+          const occupiedSquares = snake.length + food.length;
+          const emptySquares = totalSquares - occupiedSquares;
+          
+          // Calculate 80% of empty squares
+          const snacksToSpawn = Math.floor(emptySquares * 0.8);
+          
+          // Spawn snacks in empty cells
+          for (let i = 0; i < snacksToSpawn; i++) {
+            // Don't add food if we're at max score
+            if (score >= 4000) break;
+            
+            // Try to generate food, but limit attempts to avoid infinite loops
+            let attempts = 0;
+            let newFood;
+            do {
+              newFood = {
+                x: Math.floor(Math.random() * GRID_SIZE),
+                y: Math.floor(Math.random() * GRID_SIZE)
+              };
+              attempts++;
+              // If we can't find an empty spot after many attempts, break
+              if (attempts > 100) break;
+            } while (snake.some(segment => segment.x === newFood.x && segment.y === newFood.y) ||
+                     food.some(f => f.x === newFood.x && f.y === newFood.y));
+            
+            // Only add if we found a valid position
+            if (attempts <= 100) {
+              food.push(newFood);
+            }
+          }
+          
           draw();
         }
       });
