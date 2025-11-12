@@ -1113,6 +1113,27 @@
       text-shadow: 0 0 6px rgba(255, 235, 59, 0.8);
       margin: 0 2px;
     }
+    #controlModeSelect {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2300f5ff' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 40px;
+    }
+    #controlModeSelect:hover {
+      background: rgba(10, 10, 30, 0.95);
+      box-shadow: 0 0 20px rgba(0, 245, 255, 0.7);
+    }
+    #controlModeSelect:focus {
+      background: rgba(10, 10, 30, 0.95);
+      box-shadow: 0 0 20px rgba(0, 245, 255, 0.7);
+    }
+    #controlModeSelect option {
+      background: rgba(10, 10, 30, 0.95);
+      color: #00f5ff;
+    }
     #closeHelp {
       position: absolute;
       top: 15px;
@@ -1265,6 +1286,99 @@
       font-size: 32px;
       color: inherit;
       line-height: 1;
+    }
+    .split-control {
+      position: fixed;
+      z-index: 1000;
+      user-select: none;
+      display: none;
+    }
+    .split-control.show {
+      display: block;
+    }
+    .split-control-handle {
+      position: absolute;
+      top: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40px;
+      height: 20px;
+      background: rgba(10, 10, 30, 0.9);
+      border: 1px solid #00f5ff;
+      border-radius: 4px 4px 0 0;
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 8px rgba(0, 245, 255, 0.5);
+      z-index: 1001;
+      transition: all 0.2s ease;
+    }
+    .split-control-handle:hover {
+      background: rgba(0, 245, 255, 0.1);
+      box-shadow: 0 0 15px rgba(0, 245, 255, 0.8);
+    }
+    .split-control-handle:active {
+      cursor: grabbing;
+    }
+    .split-control-handle::before {
+      content: '⋮⋮';
+      color: #00f5ff;
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-shadow: 0 0 6px #00f5ff;
+    }
+    .split-control.dragging .split-btn {
+      pointer-events: none;
+    }
+    .split-control-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 50px);
+      grid-template-rows: repeat(3, 50px);
+      gap: 5px;
+    }
+    .split-btn {
+      width: 50px;
+      height: 50px;
+      background: rgba(10, 10, 30, 0.9);
+      color: #00f5ff;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 20px;
+      border: 1px solid #00f5ff;
+      cursor: pointer;
+      text-shadow: 0 0 6px #00f5ff;
+      box-shadow: 0 0 8px rgba(0, 245, 255, 0.5);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      outline: none;
+      border-radius: 4px;
+    }
+    .split-btn:hover {
+      background: rgba(0, 245, 255, 0.1);
+      box-shadow: 0 0 15px rgba(0, 245, 255, 0.8);
+      text-shadow: 0 0 10px #00f5ff;
+    }
+    .split-btn:active {
+      background: rgba(0, 245, 255, 0.2);
+      transform: scale(0.95);
+    }
+    .split-btn .material-icons {
+      font-family: 'Material Icons';
+      font-size: 24px;
+      color: inherit;
+      line-height: 1;
+    }
+    .split-btn.empty {
+      background: transparent;
+      border: none;
+      cursor: default;
+      box-shadow: none;
+    }
+    .split-btn.empty:hover {
+      background: transparent;
+      box-shadow: none;
     }
     .direction-btn {
       background: rgba(10, 10, 30, 0.9);
@@ -1771,34 +1885,22 @@
       <button id="closeControlMode" title="Close">×</button>
       <h2>CONTROL MODE</h2>
       <p>Choose how the directional controls work:</p>
-      <div style="display: flex; flex-direction: column; gap: 20px; margin-top: 20px;">
-        <div>
-          <button id="controlModeAbsolute" class="confirm-btn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
-            <span class="material-icons" style="font-size: 20px; line-height: 1; display: flex; align-items: center;">navigation</span>
-            <span>ABSOLUTE DIRECTIONS</span>
-          </button>
-          <p style="margin-top: 8px; font-size: 12px; opacity: 0.8; color: #00f5ff; text-shadow: 0 0 4px rgba(0, 245, 255, 0.3); padding-left: 4px;">
-            Up/Down/Left/Right buttons always move in those directions.
-          </p>
-        </div>
-        <div>
-          <button id="controlModeRelative" class="confirm-btn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
-            <span class="material-icons" style="font-size: 20px; line-height: 1; display: flex; align-items: center;">rotate_left</span>
-            <span>RELATIVE TURNS (LEFT/RIGHT)</span>
-          </button>
-          <p style="margin-top: 8px; font-size: 12px; opacity: 0.8; color: #00f5ff; text-shadow: 0 0 4px rgba(0, 245, 255, 0.3); padding-left: 4px;">
-            Buttons turn the snake left or right from its current facing direction.
-          </p>
-        </div>
-        <div>
-          <button id="resetControlPositions" class="confirm-btn reset-btn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px;">
-            <span class="material-icons" style="font-size: 20px; line-height: 1; display: flex; align-items: center;">refresh</span>
-            <span>RESET CONTROL POSITIONS</span>
-          </button>
-          <p style="margin-top: 8px; font-size: 12px; opacity: 0.8; color: #ff6b35; text-shadow: 0 0 4px rgba(255, 107, 53, 0.3); padding-left: 4px;">
-            Reset all control positions to their default locations.
-          </p>
-        </div>
+      <div style="margin-top: 20px;">
+        <select id="controlModeSelect" style="width: 100%; padding: 12px; background: rgba(10, 10, 30, 0.9); border: 2px solid #00f5ff; color: #00f5ff; font-family: 'Share Tech Mono', monospace; font-size: 14px; border-radius: 6px; text-transform: uppercase; cursor: pointer; outline: none; box-shadow: 0 0 15px rgba(0, 245, 255, 0.5);">
+          <option value="absolute">ABSOLUTE DIRECTIONS</option>
+          <option value="relative">RELATIVE TURNS (LEFT/RIGHT)</option>
+          <option value="split">SPLIT DIRECTIONS (LEFT/RIGHT SIDES)</option>
+        </select>
+        <p id="controlModeDescription" style="margin-top: 15px; font-size: 12px; opacity: 0.8; color: #00f5ff; text-shadow: 0 0 4px rgba(0, 245, 255, 0.3); padding-left: 4px; min-height: 40px;">
+          Up/Down/Left/Right buttons always move in those directions.
+        </p>
+        <button id="resetControlPositions" class="confirm-btn reset-btn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 20px;">
+          <span class="material-icons" style="font-size: 20px; line-height: 1; display: flex; align-items: center;">refresh</span>
+          <span>RESET CONTROL POSITIONS</span>
+        </button>
+        <p style="margin-top: 8px; font-size: 12px; opacity: 0.8; color: #ff6b35; text-shadow: 0 0 4px rgba(255, 107, 53, 0.3); padding-left: 4px;">
+          Reset all control positions to their default locations.
+        </p>
       </div>
     </div>
   </div>
@@ -1824,6 +1926,30 @@
   <div class="relative-turn-control" id="relativeTurnRight">
     <div class="relative-turn-control-handle" id="relativeTurnRightHandle"></div>
     <button class="relative-turn-btn" id="btnTurnRight" title="Turn Right"><span class="material-icons">rotate_right</span></button>
+  </div>
+  <div class="split-control" id="splitControlLeft">
+    <div class="split-control-handle" id="splitControlLeftHandle"></div>
+    <div class="split-control-buttons">
+      <div class="split-btn empty"></div>
+      <button class="split-btn" id="splitBtnUpLeft" title="Up"><span class="material-icons">arrow_upward</span></button>
+      <div class="split-btn empty"></div>
+      <button class="split-btn" id="splitBtnLeft" title="Left"><span class="material-icons">arrow_back</span></button>
+      <div class="split-btn empty"></div>
+      <button class="split-btn" id="splitBtnDownLeft" title="Down"><span class="material-icons">arrow_downward</span></button>
+      <div class="split-btn empty"></div>
+    </div>
+  </div>
+  <div class="split-control" id="splitControlRight">
+    <div class="split-control-handle" id="splitControlRightHandle"></div>
+    <div class="split-control-buttons">
+      <div class="split-btn empty"></div>
+      <button class="split-btn" id="splitBtnUpRight" title="Up"><span class="material-icons">arrow_upward</span></button>
+      <div class="split-btn empty"></div>
+      <button class="split-btn" id="splitBtnRight" title="Right"><span class="material-icons">arrow_forward</span></button>
+      <div class="split-btn empty"></div>
+      <button class="split-btn" id="splitBtnDownRight" title="Down"><span class="material-icons">arrow_downward</span></button>
+      <div class="split-btn empty"></div>
+    </div>
   </div>
   <div id="gameOver">
     <div class="game-over-content">
@@ -1908,19 +2034,27 @@
     resizeCanvas();
     window.addEventListener('resize', () => {
       setTimeout(resizeCanvas, 150);
-      // Reposition relative controls if in relative mode and not manually positioned
+      // Reposition controls if in relative or split mode and not manually positioned
       if (controlMode === 'relative') {
         setTimeout(() => {
           positionRelativeControlsAtBottom();
+        }, 200);
+      } else if (controlMode === 'split') {
+        setTimeout(() => {
+          positionSplitControlsOnSides();
         }, 200);
       }
     });
     window.addEventListener('orientationchange', () => {
       setTimeout(resizeCanvas, 100);
-      // Reposition relative controls if in relative mode and not manually positioned
+      // Reposition controls if in relative or split mode and not manually positioned
       if (controlMode === 'relative') {
         setTimeout(() => {
           positionRelativeControlsAtBottom();
+        }, 200);
+      } else if (controlMode === 'split') {
+        setTimeout(() => {
+          positionSplitControlsOnSides();
         }, 200);
       }
     });
@@ -3104,8 +3238,8 @@
       touchStartY = null;
     }, { passive: false });
 
-    // Control mode state (absolute or relative)
-    let controlMode = localStorage.getItem('controlMode') || 'absolute'; // 'absolute' or 'relative'
+    // Control mode state (absolute, relative, or split)
+    let controlMode = localStorage.getItem('controlMode') || 'absolute'; // 'absolute', 'relative', or 'split'
     
     // Function to calculate relative turn direction
     function getRelativeDirection(turn) {
@@ -3151,6 +3285,62 @@
         return { x: -currentDir.y, y: currentDir.x };
       }
       return currentDir;
+    }
+    
+    // Function to position split controls on the sides of the screen
+    function positionSplitControlsOnSides() {
+      const splitControlLeft = document.getElementById('splitControlLeft');
+      const splitControlRight = document.getElementById('splitControlRight');
+      const leftPos = localStorage.getItem('splitControlLeftPosition');
+      const rightPos = localStorage.getItem('splitControlRightPosition');
+      
+      // Only position if not already saved
+      if (!leftPos || !rightPos) {
+        const gameContainer = document.getElementById('game-container');
+        if (gameContainer) {
+          const containerRect = gameContainer.getBoundingClientRect();
+          const controlHeight = 170; // Height of 3x3 grid (3 buttons + gaps)
+          const controlWidth = 50; // Width of control button
+          const padding = 20; // Padding from edges
+          
+          // Position vertically centered on the sides
+          const centerY = containerRect.top + (containerRect.height / 2) - (controlHeight / 2);
+          
+          if (!leftPos && splitControlLeft) {
+            // Position on left side
+            splitControlLeft.style.left = (containerRect.left - controlWidth - padding) + 'px';
+            splitControlLeft.style.top = centerY + 'px';
+            splitControlLeft.style.transform = 'none';
+            splitControlLeft.style.bottom = 'auto';
+            splitControlLeft.style.right = 'auto';
+          }
+          
+          if (!rightPos && splitControlRight) {
+            // Position on right side
+            splitControlRight.style.left = (containerRect.right + padding) + 'px';
+            splitControlRight.style.top = centerY + 'px';
+            splitControlRight.style.transform = 'none';
+            splitControlRight.style.bottom = 'auto';
+            splitControlRight.style.right = 'auto';
+          }
+        } else {
+          // Fallback if game container not found
+          if (!leftPos && splitControlLeft) {
+            splitControlLeft.style.left = '20px';
+            splitControlLeft.style.top = '50%';
+            splitControlLeft.style.transform = 'translateY(-50%)';
+            splitControlLeft.style.bottom = 'auto';
+            splitControlLeft.style.right = 'auto';
+          }
+          if (!rightPos && splitControlRight) {
+            splitControlRight.style.right = '20px';
+            splitControlRight.style.top = '50%';
+            splitControlRight.style.transform = 'translateY(-50%)';
+            splitControlRight.style.bottom = 'auto';
+            splitControlRight.style.left = 'auto';
+          }
+        }
+      }
     }
     
     // Function to position relative controls at bottom of game area
@@ -3219,9 +3409,14 @@
       const btnTurnLeft = document.getElementById('btnTurnLeft');
       const btnTurnRight = document.getElementById('btnTurnRight');
       
+      const splitControlLeft = document.getElementById('splitControlLeft');
+      const splitControlRight = document.getElementById('splitControlRight');
+      
       if (controlMode === 'relative') {
-        // Hide absolute direction controls
+        // Hide absolute direction controls and split controls
         directionControls.style.display = 'none';
+        if (splitControlLeft) splitControlLeft.classList.remove('show');
+        if (splitControlRight) splitControlRight.classList.remove('show');
         
         // Show relative turn controls
         relativeTurnLeft.classList.add('show');
@@ -3252,10 +3447,57 @@
         setTimeout(() => {
           positionRelativeControlsAtBottom();
         }, 100);
-      } else {
-        // Hide relative turn controls
+      } else if (controlMode === 'split') {
+        // Hide absolute direction controls and relative turn controls
+        directionControls.style.display = 'none';
         relativeTurnLeft.classList.remove('show');
         relativeTurnRight.classList.remove('show');
+        
+        // Show split controls
+        if (splitControlLeft) splitControlLeft.classList.add('show');
+        if (splitControlRight) splitControlRight.classList.add('show');
+        
+        // Get split control buttons
+        const splitBtnUpLeft = document.getElementById('splitBtnUpLeft');
+        const splitBtnLeft = document.getElementById('splitBtnLeft');
+        const splitBtnDownLeft = document.getElementById('splitBtnDownLeft');
+        const splitBtnUpRight = document.getElementById('splitBtnUpRight');
+        const splitBtnRight = document.getElementById('splitBtnRight');
+        const splitBtnDownRight = document.getElementById('splitBtnDownRight');
+        
+        // Remove existing listeners by cloning and replacing
+        const newSplitBtnUpLeft = splitBtnUpLeft.cloneNode(true);
+        const newSplitBtnLeft = splitBtnLeft.cloneNode(true);
+        const newSplitBtnDownLeft = splitBtnDownLeft.cloneNode(true);
+        const newSplitBtnUpRight = splitBtnUpRight.cloneNode(true);
+        const newSplitBtnRight = splitBtnRight.cloneNode(true);
+        const newSplitBtnDownRight = splitBtnDownRight.cloneNode(true);
+        
+        splitBtnUpLeft.parentNode.replaceChild(newSplitBtnUpLeft, splitBtnUpLeft);
+        splitBtnLeft.parentNode.replaceChild(newSplitBtnLeft, splitBtnLeft);
+        splitBtnDownLeft.parentNode.replaceChild(newSplitBtnDownLeft, splitBtnDownLeft);
+        splitBtnUpRight.parentNode.replaceChild(newSplitBtnUpRight, splitBtnUpRight);
+        splitBtnRight.parentNode.replaceChild(newSplitBtnRight, splitBtnRight);
+        splitBtnDownRight.parentNode.replaceChild(newSplitBtnDownRight, splitBtnDownRight);
+        
+        // Set up split control buttons
+        newSplitBtnUpLeft.addEventListener('click', () => changeDirection({ x: 0, y: -1 }));
+        newSplitBtnLeft.addEventListener('click', () => changeDirection({ x: -1, y: 0 }));
+        newSplitBtnDownLeft.addEventListener('click', () => changeDirection({ x: 0, y: 1 }));
+        newSplitBtnUpRight.addEventListener('click', () => changeDirection({ x: 0, y: -1 }));
+        newSplitBtnRight.addEventListener('click', () => changeDirection({ x: 1, y: 0 }));
+        newSplitBtnDownRight.addEventListener('click', () => changeDirection({ x: 0, y: 1 }));
+        
+        // Position split controls on sides (if not already positioned)
+        setTimeout(() => {
+          positionSplitControlsOnSides();
+        }, 100);
+      } else {
+        // Hide relative turn controls and split controls
+        relativeTurnLeft.classList.remove('show');
+        relativeTurnRight.classList.remove('show');
+        if (splitControlLeft) splitControlLeft.classList.remove('show');
+        if (splitControlRight) splitControlRight.classList.remove('show');
         
         // Show absolute direction controls
         directionControls.style.display = 'grid';
@@ -3555,6 +3797,184 @@
         e.stopPropagation();
       }
     });
+    
+    // Draggable split controls
+    let splitControlLeft = document.getElementById('splitControlLeft');
+    let splitControlRight = document.getElementById('splitControlRight');
+    let splitControlLeftHandle = document.getElementById('splitControlLeftHandle');
+    let splitControlRightHandle = document.getElementById('splitControlRightHandle');
+    let isDraggingSplitLeft = false;
+    let isDraggingSplitRight = false;
+    let dragOffsetSplitLeft = { x: 0, y: 0 };
+    let dragOffsetSplitRight = { x: 0, y: 0 };
+    
+    // Load saved positions for split controls
+    const savedSplitLeftPos = localStorage.getItem('splitControlLeftPosition');
+    const savedSplitRightPos = localStorage.getItem('splitControlRightPosition');
+    if (savedSplitLeftPos && splitControlLeft) {
+      const pos = JSON.parse(savedSplitLeftPos);
+      splitControlLeft.style.left = pos.left + 'px';
+      splitControlLeft.style.top = pos.top + 'px';
+      splitControlLeft.style.bottom = 'auto';
+      splitControlLeft.style.right = 'auto';
+      splitControlLeft.style.transform = 'none';
+    }
+    if (savedSplitRightPos && splitControlRight) {
+      const pos = JSON.parse(savedSplitRightPos);
+      splitControlRight.style.left = pos.left + 'px';
+      splitControlRight.style.top = pos.top + 'px';
+      splitControlRight.style.bottom = 'auto';
+      splitControlRight.style.right = 'auto';
+      splitControlRight.style.transform = 'none';
+    }
+    
+    function saveSplitPosition(control, isLeft) {
+      const rect = control.getBoundingClientRect();
+      const key = isLeft ? 'splitControlLeftPosition' : 'splitControlRightPosition';
+      localStorage.setItem(key, JSON.stringify({
+        left: rect.left,
+        top: rect.top
+      }));
+    }
+    
+    // Handle drag start for split left control
+    function startDragSplitLeft(e) {
+      const target = e.target;
+      if (target !== splitControlLeftHandle && 
+          !splitControlLeftHandle.contains(target) &&
+          !target.closest('.split-control-handle')) {
+        return;
+      }
+      isDraggingSplitLeft = true;
+      splitControlLeft.classList.add('dragging');
+      const rect = splitControlLeft.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      dragOffsetSplitLeft.x = clientX - rect.left;
+      dragOffsetSplitLeft.y = clientY - rect.top;
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    // Handle drag start for split right control
+    function startDragSplitRight(e) {
+      const target = e.target;
+      if (target !== splitControlRightHandle && 
+          !splitControlRightHandle.contains(target) &&
+          !target.closest('.split-control-handle')) {
+        return;
+      }
+      isDraggingSplitRight = true;
+      splitControlRight.classList.add('dragging');
+      const rect = splitControlRight.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      dragOffsetSplitRight.x = clientX - rect.left;
+      dragOffsetSplitRight.y = clientY - rect.top;
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    // Handle drag for split controls
+    function doDragSplit(e) {
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      
+      if (isDraggingSplitLeft && splitControlLeft) {
+        let newLeft = clientX - dragOffsetSplitLeft.x;
+        let newTop = clientY - dragOffsetSplitLeft.y;
+        
+        const rect = splitControlLeft.getBoundingClientRect();
+        const maxLeft = window.innerWidth - rect.width;
+        const maxTop = window.innerHeight - rect.height;
+        
+        newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+        newTop = Math.max(0, Math.min(newTop, maxTop));
+        
+        splitControlLeft.style.left = newLeft + 'px';
+        splitControlLeft.style.top = newTop + 'px';
+        splitControlLeft.style.bottom = 'auto';
+        splitControlLeft.style.right = 'auto';
+        splitControlLeft.style.transform = 'none';
+      }
+      
+      if (isDraggingSplitRight && splitControlRight) {
+        let newLeft = clientX - dragOffsetSplitRight.x;
+        let newTop = clientY - dragOffsetSplitRight.y;
+        
+        const rect = splitControlRight.getBoundingClientRect();
+        const maxLeft = window.innerWidth - rect.width;
+        const maxTop = window.innerHeight - rect.height;
+        
+        newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+        newTop = Math.max(0, Math.min(newTop, maxTop));
+        
+        splitControlRight.style.left = newLeft + 'px';
+        splitControlRight.style.top = newTop + 'px';
+        splitControlRight.style.bottom = 'auto';
+        splitControlRight.style.right = 'auto';
+        splitControlRight.style.transform = 'none';
+      }
+      
+      if (isDraggingSplitLeft || isDraggingSplitRight) {
+        e.preventDefault();
+      }
+    }
+    
+    // Handle drag end for split controls
+    function endDragSplit() {
+      if (isDraggingSplitLeft && splitControlLeft) {
+        isDraggingSplitLeft = false;
+        splitControlLeft.classList.remove('dragging');
+        saveSplitPosition(splitControlLeft, true);
+      }
+      if (isDraggingSplitRight && splitControlRight) {
+        isDraggingSplitRight = false;
+        splitControlRight.classList.remove('dragging');
+        saveSplitPosition(splitControlRight, false);
+      }
+    }
+    
+    // Add event listeners for dragging split controls
+    if (splitControlLeftHandle) {
+      splitControlLeftHandle.addEventListener('mousedown', startDragSplitLeft);
+      splitControlLeftHandle.addEventListener('touchstart', startDragSplitLeft, { passive: false });
+    }
+    if (splitControlRightHandle) {
+      splitControlRightHandle.addEventListener('mousedown', startDragSplitRight);
+      splitControlRightHandle.addEventListener('touchstart', startDragSplitRight, { passive: false });
+    }
+    
+    // Update global drag handlers to include split controls
+    document.addEventListener('mousemove', doDragSplit);
+    document.addEventListener('touchmove', doDragSplit, { passive: false });
+    document.addEventListener('mouseup', endDragSplit);
+    document.addEventListener('touchend', endDragSplit);
+    
+    // Prevent button clicks from triggering drag on split controls
+    if (splitControlLeft) {
+      splitControlLeft.addEventListener('mousedown', (e) => {
+        const target = e.target;
+        if (target.closest('.split-btn') && !target.closest('.split-control-handle')) {
+          return;
+        }
+        if (target !== splitControlLeftHandle && !target.closest('.split-control-handle')) {
+          e.stopPropagation();
+        }
+      });
+    }
+    
+    if (splitControlRight) {
+      splitControlRight.addEventListener('mousedown', (e) => {
+        const target = e.target;
+        if (target.closest('.split-btn') && !target.closest('.split-control-handle')) {
+          return;
+        }
+        if (target !== splitControlRightHandle && !target.closest('.split-control-handle')) {
+          e.stopPropagation();
+        }
+      });
+    }
 
     // Restart button
     restartBtn.addEventListener('click', () => {
@@ -3894,22 +4314,42 @@
 
     // Control mode modal should only close with X button, not by clicking outside
 
+    const controlModeSelect = document.getElementById('controlModeSelect');
+    const controlModeDescription = document.getElementById('controlModeDescription');
+    
+    // Description texts for each mode
+    const modeDescriptions = {
+      'absolute': 'Up/Down/Left/Right buttons always move in those directions.',
+      'relative': 'Buttons turn the snake left or right from its current facing direction.',
+      'split': 'Left side: Up, Left, Down. Right side: Up, Right, Down. Split directional controls on both sides.'
+    };
+    
+    // Set initial value and description
+    if (controlModeSelect) {
+      controlModeSelect.value = controlMode;
+      if (controlModeDescription) {
+        controlModeDescription.textContent = modeDescriptions[controlMode] || modeDescriptions['absolute'];
+      }
+    }
+
     function setControlMode(mode) {
       controlMode = mode;
       localStorage.setItem('controlMode', mode);
       updateDirectionButtons();
+      // Update dropdown and description
+      if (controlModeSelect) {
+        controlModeSelect.value = mode;
+      }
+      if (controlModeDescription) {
+        controlModeDescription.textContent = modeDescriptions[mode] || modeDescriptions['absolute'];
+      }
       // Don't close the modal - let user see the controls change and close manually with X
     }
-
-    if (controlModeAbsolute) {
-      controlModeAbsolute.addEventListener('click', () => {
-        setControlMode('absolute');
-      });
-    }
-
-    if (controlModeRelative) {
-      controlModeRelative.addEventListener('click', () => {
-        setControlMode('relative');
+    
+    // Handle dropdown change
+    if (controlModeSelect) {
+      controlModeSelect.addEventListener('change', (e) => {
+        setControlMode(e.target.value);
       });
     }
 
@@ -3921,6 +4361,8 @@
         localStorage.removeItem('directionControlsPosition');
         localStorage.removeItem('relativeTurnLeftPosition');
         localStorage.removeItem('relativeTurnRightPosition');
+        localStorage.removeItem('splitControlLeftPosition');
+        localStorage.removeItem('splitControlRightPosition');
         
         // Reset absolute direction controls to default position
         const directionControls = document.getElementById('directionControls');
@@ -3956,6 +4398,30 @@
           }, 100);
         }
         
+        // Reset split controls
+        const splitControlLeft = document.getElementById('splitControlLeft');
+        const splitControlRight = document.getElementById('splitControlRight');
+        
+        if (splitControlLeft && splitControlRight) {
+          // Clear their positions
+          splitControlLeft.style.left = '';
+          splitControlLeft.style.top = '';
+          splitControlLeft.style.bottom = '';
+          splitControlLeft.style.right = '';
+          splitControlLeft.style.transform = '';
+          
+          splitControlRight.style.left = '';
+          splitControlRight.style.top = '';
+          splitControlRight.style.bottom = '';
+          splitControlRight.style.right = '';
+          splitControlRight.style.transform = '';
+          
+          // Reposition on sides
+          setTimeout(() => {
+            positionSplitControlsOnSides();
+          }, 100);
+        }
+        
         // Play feedback sound
         SoundManager.playGlitch();
       });
@@ -3982,10 +4448,14 @@
     // Show start button initially
     showStartButton();
     
-    // Position relative controls on initial load if in relative mode
+    // Position controls on initial load if in relative or split mode
     if (controlMode === 'relative') {
       setTimeout(() => {
         positionRelativeControlsAtBottom();
+      }, 200);
+    } else if (controlMode === 'split') {
+      setTimeout(() => {
+        positionSplitControlsOnSides();
       }, 200);
     }
     
