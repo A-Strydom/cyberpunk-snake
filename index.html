@@ -2300,24 +2300,15 @@
       },
       
       playVictory() {
-        // Celebration sound - ascending tones
+        // Simple victory sound - ascending three-tone beep
         this.ensureResumed().catch(() => {});
-        const frequencies = [400, 500, 600, 700, 800, 900, 1000];
-        frequencies.forEach((freq, index) => {
-          setTimeout(() => {
-            this.playTone(freq, 0.15, 'sine', 0.3);
-          }, index * 80);
-        });
-        // Add a final triumphant chord
+        this.playTone(500, 0.1, 'sine', 0.2);
         setTimeout(() => {
-          this.playTone(600, 0.3, 'sine', 0.4);
+          this.playTone(650, 0.1, 'sine', 0.2);
           setTimeout(() => {
-            this.playTone(800, 0.3, 'sine', 0.4);
-            setTimeout(() => {
-              this.playTone(1000, 0.3, 'sine', 0.4);
-            }, 50);
-          }, 50);
-        }, frequencies.length * 80);
+            this.playTone(800, 0.12, 'sine', 0.2);
+          }, 60);
+        }, 60);
       }
     };
     
