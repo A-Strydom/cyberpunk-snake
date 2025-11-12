@@ -2004,6 +2004,8 @@
     let hyperSpeedLoopId = null;
     let autodriveActive = false;
     let autodriveSpeed = 1.0;
+    let tongueAnimation = 0; // 0 to 1, cycles for tongue animation
+    let scalePattern = null; // Cached scale pattern for performance
 
     // Responsive canvas sizing
     function getCanvasSize() {
@@ -2210,7 +2212,7 @@
         
         this.ensureResumed().catch(() => {});
         // Use a slightly longer duration for better feedback
-        this.playTone(100, 0.2, 'sawtooth', 0.15);
+        this.playTone(100, 0.2, 'sawtooth', 0.05);
       },
       
       playGameOver() {
@@ -2373,84 +2375,288 @@
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
 
-      // Draw snake with continuous gradient
+      // Draw snake as a solid curved path
       const snakeLength = snake.length;
       if (snakeLength === 0) return;
       
-      // Define color stops for smooth gradient from head to tail
-      const headColor = { r: 0, g: 245, b: 255 }; // #00f5ff
-      const midColor = { r: 0, g: 170, b: 200 };  // #00aacc
-      const tailColor = { r: 100, g: 50, b: 200 }; // Purple for visibility
+      // Calculate center points for each segment
+      const centers = snake.map(segment => ({
+        x: segment.x * cellSize + cellSize / 2,
+        y: segment.y * cellSize + cellSize / 2
+      }));
       
-      snake.forEach((segment, index) => {
-        const x = segment.x * cellSize;
-        const y = segment.y * cellSize;
+      // Helper function to calculate distance between two points (handling wrap)
+      function getDistance(p1, p2) {
+        let dx = p2.x - p1.x;
+        let dy = p2.y - p1.y;
         
-        // Calculate position ratio (0 = head, 1 = tail)
-        const ratio = index / (snakeLength - 1);
-        
-        // Interpolate color smoothly from head to tail
-        let r, g, b;
-        if (ratio < 0.5) {
-          // First half: head to mid
-          const t = ratio * 2; // 0 to 1
-          r = Math.round(headColor.r + (midColor.r - headColor.r) * t);
-          g = Math.round(headColor.g + (midColor.g - headColor.g) * t);
-          b = Math.round(headColor.b + (midColor.b - headColor.b) * t);
-        } else {
-          // Second half: mid to tail
-          const t = (ratio - 0.5) * 2; // 0 to 1
-          r = Math.round(midColor.r + (tailColor.r - midColor.r) * t);
-          g = Math.round(midColor.g + (tailColor.g - midColor.g) * t);
-          b = Math.round(midColor.b + (tailColor.b - midColor.b) * t);
+        // Check for wrapping (if distance is more than half the canvas, it wrapped)
+        const canvasSize = GRID_SIZE * cellSize;
+        if (Math.abs(dx) > canvasSize / 2) {
+          dx = dx > 0 ? dx - canvasSize : dx + canvasSize;
+        }
+        if (Math.abs(dy) > canvasSize / 2) {
+          dy = dy > 0 ? dy - canvasSize : dy + canvasSize;
         }
         
-        // Make tail segment(s) brighter and more visible
-        const isTail = index === snakeLength - 1;
-        const isNearTail = index >= snakeLength - 2;
-        
-        if (isTail) {
-          // Tail: bright purple/cyan for maximum visibility
-          r = 150;
-          g = 100;
-          b = 255;
-        } else if (isNearTail) {
-          // Near tail: slightly brighter
-          r = Math.min(255, r + 30);
-          g = Math.min(255, g + 20);
-          b = Math.min(255, b + 30);
-        }
-        
-        const color = `rgb(${r}, ${g}, ${b})`;
-        ctx.fillStyle = color;
-        
-        // Shadow/glow effect - only for head and tail, reduced for body to prevent ghosting
-        if (index === 0) {
-          ctx.shadowColor = '#00f5ff';
-          ctx.shadowBlur = 10;
-        } else if (isTail) {
-          ctx.shadowColor = `rgb(${r}, ${g}, ${b})`;
-          ctx.shadowBlur = 8; // Reduced to prevent ghosting
-        } else {
-          // Body segments: minimal or no shadow to prevent ghosting
-          ctx.shadowColor = 'transparent';
-          ctx.shadowBlur = 0;
-        }
-        
-        ctx.fillRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
-        
-        // Reset shadow before border to prevent bleeding
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 0;
-        
-        // Border - stronger on head and tail
-        const borderAlpha = index === 0 ? 0.9 : (isTail ? 0.8 : 0.5);
-        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${borderAlpha})`;
-        ctx.lineWidth = index === 0 || isTail ? 1.5 : 1;
-        ctx.strokeRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
-      });
+        return Math.sqrt(dx * dx + dy * dy);
+      }
       
-      // Ensure all shadow properties are reset after drawing snake
+      // Helper function to normalize wrapped positions
+      function normalizePoint(p, prevP) {
+        const canvasSize = GRID_SIZE * cellSize;
+        let x = p.x;
+        let y = p.y;
+        
+        if (prevP) {
+          // Check if wrapped
+          let dx = x - prevP.x;
+          let dy = y - prevP.y;
+          
+          if (Math.abs(dx) > canvasSize / 2) {
+            x = dx > 0 ? x - canvasSize : x + canvasSize;
+          }
+          if (Math.abs(dy) > canvasSize / 2) {
+            y = dy > 0 ? y - canvasSize : y + canvasSize;
+          }
+        }
+        
+        return { x, y };
+      }
+      
+      // Normalize all points to handle wrapping
+      const normalizedCenters = [];
+      for (let i = 0; i < centers.length; i++) {
+        const prev = i > 0 ? normalizedCenters[i - 1] : null;
+        normalizedCenters.push(normalizePoint(centers[i], prev));
+      }
+      
+      // Draw the snake as a continuous path with curves
+      const radius = cellSize * 0.4; // Snake body radius
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      
+      // Build the path
+      const snakePath = new Path2D();
+      snakePath.moveTo(normalizedCenters[0].x, normalizedCenters[0].y);
+      
+      for (let i = 1; i < normalizedCenters.length; i++) {
+        const prev = normalizedCenters[i - 1];
+        const curr = normalizedCenters[i];
+        const next = i < normalizedCenters.length - 1 ? normalizedCenters[i + 1] : null;
+        
+        if (next) {
+          // Calculate direction vectors
+          const dir1 = { x: curr.x - prev.x, y: curr.y - prev.y };
+          const dir2 = { x: next.x - curr.x, y: next.y - curr.y };
+          
+          // Normalize direction vectors
+          const len1 = Math.sqrt(dir1.x * dir1.x + dir1.y * dir1.y);
+          const len2 = Math.sqrt(dir2.x * dir2.x + dir2.y * dir2.y);
+          
+          if (len1 > 0 && len2 > 0) {
+            dir1.x /= len1;
+            dir1.y /= len1;
+            dir2.x /= len2;
+            dir2.y /= len2;
+            
+            // Check if turning (not going straight)
+            const dot = dir1.x * dir2.x + dir1.y * dir2.y;
+            const isTurning = dot < 0.99; // Not perfectly aligned
+            
+            if (isTurning) {
+              // Draw curve at corner
+              const curveRadius = Math.min(radius * 0.6, cellSize * 0.3);
+              const cornerX = curr.x - dir1.x * curveRadius;
+              const cornerY = curr.y - dir1.y * curveRadius;
+              const cornerX2 = curr.x + dir2.x * curveRadius;
+              const cornerY2 = curr.y + dir2.y * curveRadius;
+              
+              snakePath.lineTo(cornerX, cornerY);
+              snakePath.quadraticCurveTo(curr.x, curr.y, cornerX2, cornerY2);
+            } else {
+              // Straight line
+              snakePath.lineTo(curr.x, curr.y);
+            }
+          } else {
+            snakePath.lineTo(curr.x, curr.y);
+          }
+        } else {
+          // Last segment - just line to tail
+          snakePath.lineTo(curr.x, curr.y);
+        }
+      }
+      
+      // Create gradient for the snake
+      const gradient = ctx.createLinearGradient(
+        normalizedCenters[0].x, normalizedCenters[0].y,
+        normalizedCenters[normalizedCenters.length - 1].x, normalizedCenters[normalizedCenters.length - 1].y
+      );
+      gradient.addColorStop(0, '#00f5ff'); // Head - cyan
+      gradient.addColorStop(0.5, '#00aacc'); // Mid - darker cyan
+      gradient.addColorStop(1, '#9664ff'); // Tail - purple
+      
+      // Create scale pattern overlay (cached for performance)
+      if (!scalePattern) {
+        const patternSize = Math.max(cellSize * 0.5, 16); // Larger pattern for less repetition
+        const patternCanvas = document.createElement('canvas');
+        patternCanvas.width = patternSize;
+        patternCanvas.height = patternSize;
+        const patternCtx = patternCanvas.getContext('2d');
+        
+        // Draw subtle snake scale pattern - diamond/hexagonal shapes
+        patternCtx.fillStyle = 'rgba(0, 0, 0, 0.1)'; // Subtle dark overlay
+        patternCtx.strokeStyle = 'rgba(0, 0, 0, 0.1)'; // Subtle border
+        patternCtx.lineWidth = 1;
+        
+        const scaleWidth = patternSize * 0.6;
+        const scaleHeight = patternSize * 0.5;
+        const rowOffset = scaleWidth * 0.5; // Stagger rows for snake skin effect
+        
+        // Draw scales in rows with offset (like real snake skin)
+        for (let row = 0; row < 3; row++) {
+          const y = row * scaleHeight * 0.7;
+          const rowStartX = (row % 2 === 0) ? 0 : rowOffset; // Alternate row offset
+          
+          for (let col = 0; col < 3; col++) {
+            const x = rowStartX + col * scaleWidth;
+            
+            // Draw diamond/hexagonal scale shape (more like snake scales)
+            patternCtx.beginPath();
+            const centerX = x + scaleWidth / 2;
+            const centerY = y + scaleHeight / 2;
+            
+            // Create diamond shape with rounded corners
+            const points = 4;
+            for (let i = 0; i < points; i++) {
+              const angle = (Math.PI * 2 * i) / points - Math.PI / 4; // Rotate 45 degrees
+              const px = centerX + Math.cos(angle) * scaleWidth * 0.35;
+              const py = centerY + Math.sin(angle) * scaleHeight * 0.35;
+              
+              if (i === 0) {
+                patternCtx.moveTo(px, py);
+              } else {
+                patternCtx.lineTo(px, py);
+              }
+            }
+            patternCtx.closePath();
+            patternCtx.fill();
+            patternCtx.stroke();
+          }
+        }
+        
+        scalePattern = ctx.createPattern(patternCanvas, 'repeat');
+      }
+      
+      // Draw the snake body with gradient
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = radius * 2;
+      ctx.shadowColor = 'rgba(0, 245, 255, 0.5)';
+      ctx.shadowBlur = 8;
+      ctx.stroke(snakePath);
+      
+      // Apply scale pattern overlay to snake body
+      ctx.save();
+      ctx.globalCompositeOperation = 'multiply'; // Blend with gradient
+      ctx.strokeStyle = scalePattern;
+      ctx.lineWidth = radius * 2;
+      ctx.shadowBlur = 0; // No shadow on pattern overlay
+      ctx.stroke(snakePath); // Reuse the same path
+      ctx.restore();
+      
+      // Draw head with top-down view
+      const headX = normalizedCenters[0].x;
+      const headY = normalizedCenters[0].y;
+      const headRadius = radius;
+      
+      // Calculate head direction for tongue
+      let headDir = { x: 1, y: 0 };
+      if (normalizedCenters.length > 1) {
+        const dirX = normalizedCenters[0].x - normalizedCenters[1].x;
+        const dirY = normalizedCenters[0].y - normalizedCenters[1].y;
+        const dirLen = Math.sqrt(dirX * dirX + dirY * dirY);
+        if (dirLen > 0) {
+          headDir = { x: dirX / dirLen, y: dirY / dirLen };
+        }
+      }
+      
+      // Draw head body (circular, top-down view)
+      ctx.fillStyle = '#00f5ff';
+      ctx.shadowColor = '#00f5ff';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.arc(headX, headY, headRadius, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Draw eyes (top-down view - snake eyes, elliptical/oval, vertical)
+      ctx.fillStyle = '#ffffff'; // Yellow eyes
+      ctx.shadowBlur = 0;
+      const eyeWidth = headRadius * 0.25; // Horizontal radius (narrower)
+      const eyeHeight = headRadius * 0.4; // Vertical radius (taller, vertical snake eyes)
+      const eyeOffsetX = headRadius * 0.35;
+      const eyeOffsetY = -headRadius * 0.2;
+      
+      // Left eye (elliptical, vertical)
+      ctx.beginPath();
+      ctx.ellipse(headX - eyeOffsetX, headY + eyeOffsetY, eyeWidth, eyeHeight, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Right eye (elliptical, vertical)
+      ctx.beginPath();
+      ctx.ellipse(headX + eyeOffsetX, headY + eyeOffsetY, eyeWidth, eyeHeight, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Draw pupils (black, vertical slit-like)
+      ctx.fillStyle = '#000000';
+      const pupilWidth = eyeWidth * 0.5;
+      const pupilHeight = eyeHeight * 0.6;
+      ctx.beginPath();
+      ctx.ellipse(headX - eyeOffsetX, headY + eyeOffsetY, pupilWidth, pupilHeight, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(headX + eyeOffsetX, headY + eyeOffsetY, pupilWidth, pupilHeight, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Animate tongue (appears and disappears completely)
+      tongueAnimation += 0.02; // Slower animation
+      if (tongueAnimation > Math.PI * 2) {
+        tongueAnimation = 0;
+      }
+      
+      // Tongue only shows when sin is positive (about half the time)
+      const tongueVisible = Math.sin(tongueAnimation) > 0;
+      
+      if (tongueVisible) {
+        // Draw simple line tongue in direction of movement
+        const tongueLength = headRadius * 0.8;
+        const tongueBaseX = headX + headDir.x * headRadius * 0.8;
+        const tongueBaseY = headY + headDir.y * headRadius * 0.8;
+        const tongueTipX = tongueBaseX + headDir.x * tongueLength;
+        const tongueTipY = tongueBaseY + headDir.y * tongueLength;
+        
+        // Create gradient from head color (cyan) to red
+        const tongueGradient = ctx.createLinearGradient(
+          tongueBaseX, tongueBaseY,
+          tongueTipX, tongueTipY
+        );
+        tongueGradient.addColorStop(0, '#00f5ff'); // Cyan at base (blends with head)
+        tongueGradient.addColorStop(0.3, '#ff6b9d'); // Pink transition
+        tongueGradient.addColorStop(1, '#ff0040'); // Red at tip
+        
+        ctx.strokeStyle = tongueGradient;
+        ctx.lineWidth = headRadius * 0.1;
+        ctx.lineCap = 'round';
+        
+        // Simple line tongue
+        ctx.beginPath();
+        ctx.moveTo(tongueBaseX, tongueBaseY);
+        ctx.lineTo(tongueTipX, tongueTipY);
+        ctx.stroke();
+      }
+      
+      // Tail is now part of the continuous path, no need for separate circle
+      
+      // Reset shadow properties
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
       ctx.shadowOffsetX = 0;
