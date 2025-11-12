@@ -848,11 +848,24 @@
       letter-spacing: 8px;
       filter: brightness(1.1);
     }
+    .flatlined-text.perfect-score {
+      color: #00ff00;
+      text-shadow: 
+        0 0 4px rgba(0, 255, 0, 0.8),
+        0 0 10px rgba(0, 255, 0, 0.48),
+        0 0 18px rgba(0, 255, 0, 0.32),
+        0 0 28px rgba(0, 255, 0, 0.24),
+        0 0 40px rgba(0, 255, 0, 0.16);
+    }
     .game-over-subtitle {
       font-size: 24px;
       color: #ff0040;
       text-shadow: 0 0 10px #ff0040;
       margin-bottom: 30px;
+    }
+    .game-over-subtitle.perfect-score {
+      color: #00ff00;
+      text-shadow: 0 0 10px #00ff00;
     }
     .final-score {
       font-size: 42px;
@@ -1623,9 +1636,21 @@
           0 0 20px rgba(255, 0, 64, 0.24),
           0 0 28px rgba(255, 0, 64, 0.16);
       }
+      .flatlined-text.perfect-score {
+        text-shadow: 
+          0 0 3px rgba(0, 255, 0, 0.8),
+          0 0 7px rgba(0, 255, 0, 0.48),
+          0 0 12px rgba(0, 255, 0, 0.32),
+          0 0 20px rgba(0, 255, 0, 0.24),
+          0 0 28px rgba(0, 255, 0, 0.16);
+      }
 
       .game-over-subtitle {
         font-size: 18px;
+      }
+      .game-over-subtitle.perfect-score {
+        color: #00ff00;
+        text-shadow: 0 0 8px #00ff00;
       }
 
       #restartGame {
@@ -2677,6 +2702,68 @@
       ctx.stroke(snakePath); // Reuse the same path
       ctx.restore();
       
+      // Draw rounded tail cap to ensure it renders properly on mobile
+      // This ensures the tail has a proper rounded end even on devices where lineCap might not render correctly
+      if (normalizedCenters.length > 1) {
+        const tailX = normalizedCenters[normalizedCenters.length - 1].x;
+        const tailY = normalizedCenters[normalizedCenters.length - 1].y;
+        const prevTail = normalizedCenters[normalizedCenters.length - 2];
+        
+        // Calculate tail direction for proper positioning
+        const dirX = tailX - prevTail.x;
+        const dirY = tailY - prevTail.y;
+        const dirLen = Math.sqrt(dirX * dirX + dirY * dirY);
+        
+        if (dirLen > 0) {
+          const tailDir = { x: dirX / dirLen, y: dirY / dirLen };
+          
+          // Position tail cap slightly back along the path to overlap with the stroke
+          // This makes it blend seamlessly instead of looking disconnected
+          const overlap = radius * 0.3; // Overlap with the path
+          const tailCapX = tailX - (tailDir.x * overlap);
+          const tailCapY = tailY - (tailDir.y * overlap);
+          
+          // Create radial gradient for seamless blending
+          const tailGradient = ctx.createRadialGradient(
+            tailCapX, tailCapY, 0,
+            tailCapX, tailCapY, radius
+          );
+          tailGradient.addColorStop(0, '#9664ff'); // Center - tail purple
+          tailGradient.addColorStop(0.7, '#9664ff'); // Most of the circle
+          tailGradient.addColorStop(1, '#9664ff'); // Edge matches path color
+          
+          // Draw tail cap with gradient
+          ctx.save();
+          ctx.fillStyle = tailGradient;
+          ctx.shadowColor = 'rgba(150, 100, 255, 0.3)';
+          ctx.shadowBlur = 4;
+          ctx.beginPath();
+          ctx.arc(tailCapX, tailCapY, radius, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Apply scale pattern overlay to tail cap for consistency
+          ctx.globalCompositeOperation = 'multiply';
+          ctx.fillStyle = scalePattern;
+          ctx.fill();
+          ctx.restore();
+        }
+      } else if (normalizedCenters.length === 1) {
+        // Single segment - just draw a circle at the tail
+        const tailX = normalizedCenters[0].x;
+        const tailY = normalizedCenters[0].y;
+        ctx.save();
+        ctx.fillStyle = '#9664ff';
+        ctx.shadowColor = 'rgba(150, 100, 255, 0.3)';
+        ctx.shadowBlur = 4;
+        ctx.beginPath();
+        ctx.arc(tailX, tailY, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = scalePattern;
+        ctx.fill();
+        ctx.restore();
+      }
+      
       // Draw head with top-down view
       const headX = normalizedCenters[0].x;
       const headY = normalizedCenters[0].y;
@@ -3047,8 +3134,14 @@
       // Reset to normal game over message
       const flatlinedText = gameOverEl.querySelector('.flatlined-text');
       const subtitle = gameOverEl.querySelector('.game-over-subtitle');
-      if (flatlinedText) flatlinedText.textContent = 'FLATLINED';
-      if (subtitle) subtitle.textContent = 'SYSTEM FAILURE DETECTED';
+      if (flatlinedText) {
+        flatlinedText.textContent = 'FLATLINED';
+        flatlinedText.classList.remove('perfect-score');
+      }
+      if (subtitle) {
+        subtitle.textContent = 'SYSTEM FAILURE DETECTED';
+        subtitle.classList.remove('perfect-score');
+      }
       gameOverEl.classList.add('show');
     }
     
@@ -3057,8 +3150,14 @@
       // Change to victory message
       const flatlinedText = gameOverEl.querySelector('.flatlined-text');
       const subtitle = gameOverEl.querySelector('.game-over-subtitle');
-      if (flatlinedText) flatlinedText.textContent = 'PERFECT SCORE';
-      if (subtitle) subtitle.textContent = 'MAX SCORE OF 4000 ACHIEVED';
+      if (flatlinedText) {
+        flatlinedText.textContent = 'PERFECT SCORE';
+        flatlinedText.classList.add('perfect-score');
+      }
+      if (subtitle) {
+        subtitle.textContent = 'MAX SCORE OF 4000 ACHIEVED';
+        subtitle.classList.add('perfect-score');
+      }
       gameOverEl.classList.add('show');
     }
 
