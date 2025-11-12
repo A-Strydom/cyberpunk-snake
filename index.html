@@ -1930,6 +1930,11 @@
       audioContext: null,
       enabled: true,
       hasUserInteracted: false,
+      noteIndex: 0, // Track current note in sequence for musical patterns
+      
+      // Musical scale (pentatonic scale in C major) - sounds pleasing in any order
+      // C, D, E, G, A, C (octave)
+      musicalScale: [261.63, 293.66, 329.63, 392.00, 440.00, 523.25],
       
       init() {
         try {
@@ -1941,6 +1946,16 @@
           console.warn('Web Audio API not supported:', e);
           this.enabled = false;
         }
+      },
+      
+      getNextNote() {
+        const note = this.musicalScale[this.noteIndex];
+        this.noteIndex = (this.noteIndex + 1) % this.musicalScale.length;
+        return note;
+      },
+      
+      resetSequence() {
+        this.noteIndex = 0;
       },
       
       updateButton() {
@@ -2023,16 +2038,21 @@
       },
       
       playDirectionChange() {
-        // Super short basic cyber beep when switching direction
-        this.playTone(400, 0.015, 'square', 0.12);
+        // Play next note in the musical sequence for direction changes
+        this.ensureResumed().catch(() => {});
+        const note = this.getNextNote();
+        this.playTone(note, 0.12, 'sine', 0.2);
       },
       
       playEat() {
-        // Non-blocking sound
+        // Play next note in the musical sequence for eating snacks
+        // Use a chord (note + fifth) for a richer, more satisfying sound
         this.ensureResumed().catch(() => {});
-        this.playTone(400, 0.1, 'sine', 0.25);
+        const note = this.getNextNote();
+        const fifth = note * 1.5; // Perfect fifth interval
+        this.playTone(note, 0.18, 'sine', 0.22);
         setTimeout(() => {
-          this.playTone(600, 0.08, 'sine', 0.2);
+          this.playTone(fifth, 0.15, 'sine', 0.18);
         }, 30);
       },
       
@@ -2417,6 +2437,9 @@
       currentSpeed = INITIAL_SPEED;
       lastMoveTime = 0;
       autodriveActive = false; // Reset autodrive on new game
+      
+      // Reset musical sequence for a fresh start
+      SoundManager.resetSequence();
       
       updateScores();
       hideGameOver();
