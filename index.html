@@ -196,8 +196,9 @@
     }
     .menu-dropdown {
       position: absolute;
-      bottom: 50px;
+      top: 100%;
       left: 0;
+      margin-top: 8px;
       background: rgba(10, 10, 30, 0.95);
       border: 1px solid #00f5ff;
       box-shadow: 0 0 15px rgba(0, 245, 255, 0.8);
@@ -207,6 +208,12 @@
       padding: 4px 0;
       pointer-events: auto;
       z-index: 200;
+    }
+    .menu-dropdown.open-above {
+      top: auto;
+      bottom: 100%;
+      margin-top: 0;
+      margin-bottom: 8px;
     }
     .menu-dropdown::before {
       content: '';
@@ -1090,6 +1097,9 @@
       margin: 10px 0;
       text-shadow: 0 0 4px rgba(0, 245, 255, 0.3);
     }
+    #confirmModal .help-content p {
+      text-align: center;
+    }
     .help-content ul {
       color: #00f5ff;
       font-family: 'Share Tech Mono', monospace;
@@ -1299,8 +1309,7 @@
     .split-control-handle {
       position: absolute;
       top: -25px;
-      left: 50%;
-      transform: translateX(-50%);
+      left: 0;
       width: 40px;
       height: 20px;
       background: rgba(10, 10, 30, 0.9);
@@ -1313,6 +1322,12 @@
       box-shadow: 0 0 8px rgba(0, 245, 255, 0.5);
       z-index: 1001;
       transition: all 0.2s ease;
+    }
+    #splitControlLeftHandle {
+      left: 60px; /* Center over column 2 (50px + 5px gap + 5px offset to center 40px handle) */
+    }
+    #splitControlRightHandle {
+      left: 5px; /* Center over column 1 (5px offset to center 40px handle over 50px column) */
     }
     .split-control-handle:hover {
       background: rgba(0, 245, 255, 0.1);
@@ -1333,9 +1348,10 @@
     }
     .split-control-buttons {
       display: grid;
-      grid-template-columns: repeat(3, 50px);
-      grid-template-rows: repeat(3, 50px);
+      grid-template-columns: 50px 50px;
+      grid-template-rows: 50px 50px 50px;
       gap: 5px;
+      position: relative;
     }
     .split-btn {
       width: 50px;
@@ -1887,12 +1903,13 @@
       <p>Choose how the directional controls work:</p>
       <div style="margin-top: 20px;">
         <select id="controlModeSelect" style="width: 100%; padding: 12px; background: rgba(10, 10, 30, 0.9); border: 2px solid #00f5ff; color: #00f5ff; font-family: 'Share Tech Mono', monospace; font-size: 14px; border-radius: 6px; text-transform: uppercase; cursor: pointer; outline: none; box-shadow: 0 0 15px rgba(0, 245, 255, 0.5);">
+          <option value="none">NONE</option>
           <option value="absolute">ABSOLUTE DIRECTIONS</option>
           <option value="relative">RELATIVE TURNS (LEFT/RIGHT)</option>
           <option value="split">SPLIT DIRECTIONS (LEFT/RIGHT SIDES)</option>
         </select>
         <p id="controlModeDescription" style="margin-top: 15px; font-size: 12px; opacity: 0.8; color: #00f5ff; text-shadow: 0 0 4px rgba(0, 245, 255, 0.3); padding-left: 4px; min-height: 40px;">
-          Up/Down/Left/Right buttons always move in those directions.
+          No touch controls displayed. Use keyboard or swipe gestures to play.
         </p>
         <button id="resetControlPositions" class="confirm-btn reset-btn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 20px;">
           <span class="material-icons" style="font-size: 20px; line-height: 1; display: flex; align-items: center;">refresh</span>
@@ -1930,25 +1947,17 @@
   <div class="split-control" id="splitControlLeft">
     <div class="split-control-handle" id="splitControlLeftHandle"></div>
     <div class="split-control-buttons">
-      <div class="split-btn empty"></div>
-      <button class="split-btn" id="splitBtnUpLeft" title="Up"><span class="material-icons">arrow_upward</span></button>
-      <div class="split-btn empty"></div>
-      <button class="split-btn" id="splitBtnLeft" title="Left"><span class="material-icons">arrow_back</span></button>
-      <div class="split-btn empty"></div>
-      <button class="split-btn" id="splitBtnDownLeft" title="Down"><span class="material-icons">arrow_downward</span></button>
-      <div class="split-btn empty"></div>
+      <button class="split-btn" id="splitBtnUpLeft" title="Up" style="grid-column: 2; grid-row: 1;"><span class="material-icons">arrow_upward</span></button>
+      <button class="split-btn" id="splitBtnDownLeft" title="Down" style="grid-column: 2; grid-row: 2;"><span class="material-icons">arrow_downward</span></button>
+      <button class="split-btn" id="splitBtnLeft" title="Left" style="grid-column: 1; grid-row: 1; margin-top: 30px"><span class="material-icons">arrow_back</span></button>
     </div>
   </div>
   <div class="split-control" id="splitControlRight">
     <div class="split-control-handle" id="splitControlRightHandle"></div>
     <div class="split-control-buttons">
-      <div class="split-btn empty"></div>
-      <button class="split-btn" id="splitBtnUpRight" title="Up"><span class="material-icons">arrow_upward</span></button>
-      <div class="split-btn empty"></div>
-      <button class="split-btn" id="splitBtnRight" title="Right"><span class="material-icons">arrow_forward</span></button>
-      <div class="split-btn empty"></div>
-      <button class="split-btn" id="splitBtnDownRight" title="Down"><span class="material-icons">arrow_downward</span></button>
-      <div class="split-btn empty"></div>
+      <button class="split-btn" id="splitBtnUpRight" title="Up" style="grid-column: 1; grid-row: 1;"><span class="material-icons">arrow_upward</span></button>
+      <button class="split-btn" id="splitBtnDownRight" title="Down" style="grid-column: 1; grid-row: 2;"><span class="material-icons">arrow_downward</span></button>
+      <button class="split-btn" id="splitBtnRight" title="Right" style="grid-column: 2; grid-row: 1; margin-top: 30px;"><span class="material-icons">arrow_forward</span></button>
     </div>
   </div>
   <div id="gameOver">
@@ -3239,7 +3248,7 @@
     }, { passive: false });
 
     // Control mode state (absolute, relative, or split)
-    let controlMode = localStorage.getItem('controlMode') || 'absolute'; // 'absolute', 'relative', or 'split'
+    let controlMode = localStorage.getItem('controlMode') || 'none'; // 'none', 'absolute', 'relative', or 'split'
     
     // Function to calculate relative turn direction
     function getRelativeDirection(turn) {
@@ -3287,58 +3296,62 @@
       return currentDir;
     }
     
-    // Function to position split controls on the sides of the screen
+    // Function to position split controls below the game board
     function positionSplitControlsOnSides() {
       const splitControlLeft = document.getElementById('splitControlLeft');
       const splitControlRight = document.getElementById('splitControlRight');
       const leftPos = localStorage.getItem('splitControlLeftPosition');
       const rightPos = localStorage.getItem('splitControlRightPosition');
       
-      // Only position if not already saved
-      if (!leftPos || !rightPos) {
         const gameContainer = document.getElementById('game-container');
         if (gameContainer) {
           const containerRect = gameContainer.getBoundingClientRect();
-          const controlHeight = 170; // Height of 3x3 grid (3 buttons + gaps)
-          const controlWidth = 50; // Width of control button
+          const controlHeight = 105; // Height of 2 buttons stacked (50px + 5px gap + 50px)
+          const controlWidth = 105; // Width of 2 columns (50px + 5px gap + 50px)
           const padding = 20; // Padding from edges
+          const spacingBelow = 25; // Space below the game container
+          const gapBetweenControls = 150; // Space between left and right controls
           
-          // Position vertically centered on the sides
-          const centerY = containerRect.top + (containerRect.height / 2) - (controlHeight / 2);
+          // Position below the game container
+          const bottomY = containerRect.bottom + spacingBelow;
           
+          // Calculate center position for both controls
+          const centerX = containerRect.left + (containerRect.width / 2);
+          
+          // Position left control if not already saved
           if (!leftPos && splitControlLeft) {
-            // Position on left side
-            splitControlLeft.style.left = (containerRect.left - controlWidth - padding) + 'px';
-            splitControlLeft.style.top = centerY + 'px';
+            // Position on left side of center with gap
+            splitControlLeft.style.left = (centerX - controlWidth - gapBetweenControls / 2) + 'px';
+            splitControlLeft.style.top = bottomY + 'px';
             splitControlLeft.style.transform = 'none';
             splitControlLeft.style.bottom = 'auto';
             splitControlLeft.style.right = 'auto';
           }
           
+          // Position right control if not already saved
           if (!rightPos && splitControlRight) {
-            // Position on right side
-            splitControlRight.style.left = (containerRect.right + padding) + 'px';
-            splitControlRight.style.top = centerY + 'px';
+            // Position on right side of center with gap
+            splitControlRight.style.left = (centerX + gapBetweenControls / 2) + 'px';
+            splitControlRight.style.top = bottomY + 'px';
             splitControlRight.style.transform = 'none';
             splitControlRight.style.bottom = 'auto';
             splitControlRight.style.right = 'auto';
           }
-        } else {
-          // Fallback if game container not found
-          if (!leftPos && splitControlLeft) {
-            splitControlLeft.style.left = '20px';
-            splitControlLeft.style.top = '50%';
-            splitControlLeft.style.transform = 'translateY(-50%)';
-            splitControlLeft.style.bottom = 'auto';
-            splitControlLeft.style.right = 'auto';
-          }
-          if (!rightPos && splitControlRight) {
-            splitControlRight.style.right = '20px';
-            splitControlRight.style.top = '50%';
-            splitControlRight.style.transform = 'translateY(-50%)';
-            splitControlRight.style.bottom = 'auto';
-            splitControlRight.style.left = 'auto';
-          }
+      } else {
+        // Fallback if game container not found
+        if (!leftPos && splitControlLeft) {
+          splitControlLeft.style.left = '20px';
+          splitControlLeft.style.bottom = '20px';
+          splitControlLeft.style.top = 'auto';
+          splitControlLeft.style.transform = 'none';
+          splitControlLeft.style.right = 'auto';
+        }
+        if (!rightPos && splitControlRight) {
+          splitControlRight.style.right = '20px';
+          splitControlRight.style.bottom = '20px';
+          splitControlRight.style.top = 'auto';
+          splitControlRight.style.transform = 'none';
+          splitControlRight.style.left = 'auto';
         }
       }
     }
@@ -3412,7 +3425,14 @@
       const splitControlLeft = document.getElementById('splitControlLeft');
       const splitControlRight = document.getElementById('splitControlRight');
       
-      if (controlMode === 'relative') {
+      if (controlMode === 'none') {
+        // Hide all touch controls
+        directionControls.style.display = 'none';
+        relativeTurnLeft.classList.remove('show');
+        relativeTurnRight.classList.remove('show');
+        if (splitControlLeft) splitControlLeft.classList.remove('show');
+        if (splitControlRight) splitControlRight.classList.remove('show');
+      } else if (controlMode === 'relative') {
         // Hide absolute direction controls and split controls
         directionControls.style.display = 'none';
         if (splitControlLeft) splitControlLeft.classList.remove('show');
@@ -3492,7 +3512,7 @@
         setTimeout(() => {
           positionSplitControlsOnSides();
         }, 100);
-      } else {
+      } else if (controlMode === 'absolute') {
         // Hide relative turn controls and split controls
         relativeTurnLeft.classList.remove('show');
         relativeTurnRight.classList.remove('show');
@@ -3886,10 +3906,9 @@
         
         const rect = splitControlLeft.getBoundingClientRect();
         const maxLeft = window.innerWidth - rect.width;
-        const maxTop = window.innerHeight - rect.height;
         
         newLeft = Math.max(0, Math.min(newLeft, maxLeft));
-        newTop = Math.max(0, Math.min(newTop, maxTop));
+        // Allow positioning anywhere vertically, including below the viewport
         
         splitControlLeft.style.left = newLeft + 'px';
         splitControlLeft.style.top = newTop + 'px';
@@ -3904,10 +3923,9 @@
         
         const rect = splitControlRight.getBoundingClientRect();
         const maxLeft = window.innerWidth - rect.width;
-        const maxTop = window.innerHeight - rect.height;
         
         newLeft = Math.max(0, Math.min(newLeft, maxLeft));
-        newTop = Math.max(0, Math.min(newTop, maxTop));
+        // Allow positioning anywhere vertically, including below the viewport
         
         splitControlRight.style.left = newLeft + 'px';
         splitControlRight.style.top = newTop + 'px';
@@ -4074,6 +4092,31 @@
     if (menuToggle && menuDropdown) {
       menuToggle.addEventListener('click', (e) => {
         e.stopPropagation();
+        const isShowing = menuDropdown.classList.contains('show');
+        
+        if (!isShowing) {
+          // Show temporarily to measure
+          menuDropdown.style.display = 'flex';
+          menuDropdown.style.visibility = 'hidden';
+          
+          const toggleRect = menuToggle.getBoundingClientRect();
+          const dropdownRect = menuDropdown.getBoundingClientRect();
+          const spaceBelow = window.innerHeight - toggleRect.bottom;
+          const spaceAbove = toggleRect.top;
+          const dropdownHeight = dropdownRect.height;
+          
+          // Reset display
+          menuDropdown.style.display = '';
+          menuDropdown.style.visibility = '';
+          
+          // If not enough space below but enough space above, open above
+          if (spaceBelow < dropdownHeight + 20 && spaceAbove > dropdownHeight + 20) {
+            menuDropdown.classList.add('open-above');
+          } else {
+            menuDropdown.classList.remove('open-above');
+          }
+        }
+        
         menuDropdown.classList.toggle('show');
       });
       
@@ -4319,6 +4362,7 @@
     
     // Description texts for each mode
     const modeDescriptions = {
+      'none': 'No touch controls displayed. Use keyboard or swipe gestures to play.',
       'absolute': 'Up/Down/Left/Right buttons always move in those directions.',
       'relative': 'Buttons turn the snake left or right from its current facing direction.',
       'split': 'Left side: Up, Left, Down. Right side: Up, Right, Down. Split directional controls on both sides.'
@@ -4328,7 +4372,7 @@
     if (controlModeSelect) {
       controlModeSelect.value = controlMode;
       if (controlModeDescription) {
-        controlModeDescription.textContent = modeDescriptions[controlMode] || modeDescriptions['absolute'];
+        controlModeDescription.textContent = modeDescriptions[controlMode] || modeDescriptions['none'];
       }
     }
 
@@ -4341,7 +4385,7 @@
         controlModeSelect.value = mode;
       }
       if (controlModeDescription) {
-        controlModeDescription.textContent = modeDescriptions[mode] || modeDescriptions['absolute'];
+        controlModeDescription.textContent = modeDescriptions[mode] || modeDescriptions['none'];
       }
       // Don't close the modal - let user see the controls change and close manually with X
     }
