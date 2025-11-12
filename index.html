@@ -565,29 +565,43 @@
       background: rgba(0, 245, 255, 0.3);
       border-radius: 2px;
       outline: none;
+      touch-action: pan-x;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      user-select: none;
     }
     .autodrive-speed-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 16px;
-      height: 16px;
+      width: 24px;
+      height: 24px;
       background: #00f5ff;
       border-radius: 50%;
       cursor: pointer;
       box-shadow: 0 0 8px #00f5ff;
       transition: box-shadow 0.2s ease;
+      touch-action: none;
     }
     .autodrive-speed-slider::-webkit-slider-thumb:hover {
       box-shadow: 0 0 12px #00f5ff;
     }
+    .autodrive-speed-slider::-webkit-slider-thumb:active {
+      box-shadow: 0 0 15px #00f5ff;
+      transform: scale(1.1);
+    }
     .autodrive-speed-slider::-moz-range-thumb {
-      width: 16px;
-      height: 16px;
+      width: 24px;
+      height: 24px;
       background: #00f5ff;
       border-radius: 50%;
       cursor: pointer;
       border: none;
       box-shadow: 0 0 8px #00f5ff;
+      touch-action: none;
+    }
+    .autodrive-speed-slider::-moz-range-thumb:active {
+      box-shadow: 0 0 15px #00f5ff;
+      transform: scale(1.1);
     }
     .autodrive-speed-value {
       color: #00f5ff;
@@ -918,6 +932,50 @@
     #helpModal.show {
       display: flex;
     }
+    #controlModeModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(5px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      animation: fadeIn 0.3s ease;
+    }
+    #controlModeModal.show {
+      display: flex;
+    }
+    #closeControlMode {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: transparent;
+      border: 1px solid #00f5ff;
+      color: #00f5ff;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 20px;
+      width: 35px;
+      height: 35px;
+      cursor: pointer;
+      text-shadow: 0 0 8px #00f5ff;
+      box-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
+      transition: all 0.2s ease;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #closeControlMode:hover {
+      background: rgba(0, 245, 255, 0.1);
+      border-color: #ff0040;
+      color: #ff0040;
+      box-shadow: 0 0 15px rgba(255, 0, 64, 0.5);
+      text-shadow: 0 0 10px #ff0040;
+    }
     #confirmModal {
       position: fixed;
       top: 0;
@@ -962,6 +1020,23 @@
       box-shadow: 0 0 25px rgba(255, 235, 59, 0.8);
       transform: scale(1.05);
       text-shadow: 0 0 15px #ffeb3b;
+    }
+    .reset-btn {
+      border-color: #ff6b35 !important;
+      color: #ff6b35 !important;
+      text-shadow: 0 0 8px #ff6b35 !important;
+      box-shadow: 0 0 15px rgba(255, 107, 53, 0.5) !important;
+    }
+    .reset-btn:hover {
+      background: rgba(255, 107, 53, 0.1) !important;
+      color: #ff6b35 !important;
+      border-color: #ff6b35 !important;
+      box-shadow: 0 0 20px rgba(255, 107, 53, 0.7) !important;
+      text-shadow: 0 0 12px #ff6b35 !important;
+    }
+    .reset-btn .material-icons {
+      color: inherit !important;
+      text-shadow: inherit !important;
     }
     @keyframes fadeIn {
       from { opacity: 0; }
@@ -1073,7 +1148,123 @@
       grid-template-columns: repeat(3, 50px);
       grid-template-rows: repeat(3, 50px);
       gap: 5px;
-      z-index: 100;
+      z-index: 1000;
+      user-select: none;
+    }
+    .direction-controls.dragging {
+      cursor: grabbing;
+    }
+    .direction-controls.dragging .direction-btn {
+      pointer-events: none;
+    }
+    .direction-controls-handle {
+      position: absolute;
+      top: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40px;
+      height: 20px;
+      background: rgba(10, 10, 30, 0.9);
+      border: 1px solid #00f5ff;
+      border-radius: 4px 4px 0 0;
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 8px rgba(0, 245, 255, 0.5);
+      z-index: 1001;
+      transition: all 0.2s ease;
+    }
+    .direction-controls-handle:hover {
+      background: rgba(0, 245, 255, 0.1);
+      box-shadow: 0 0 15px rgba(0, 245, 255, 0.8);
+    }
+    .direction-controls-handle:active {
+      cursor: grabbing;
+    }
+    .direction-controls-handle::before {
+      content: '⋮⋮';
+      color: #00f5ff;
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-shadow: 0 0 6px #00f5ff;
+    }
+    .relative-turn-control {
+      position: fixed;
+      z-index: 1000;
+      user-select: none;
+      display: none;
+    }
+    .relative-turn-control.show {
+      display: block;
+    }
+    .relative-turn-control-handle {
+      position: absolute;
+      top: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40px;
+      height: 20px;
+      background: rgba(10, 10, 30, 0.9);
+      border: 1px solid #00f5ff;
+      border-radius: 4px 4px 0 0;
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 8px rgba(0, 245, 255, 0.5);
+      z-index: 1001;
+      transition: all 0.2s ease;
+    }
+    .relative-turn-control-handle:hover {
+      background: rgba(0, 245, 255, 0.1);
+      box-shadow: 0 0 15px rgba(0, 245, 255, 0.8);
+    }
+    .relative-turn-control-handle:active {
+      cursor: grabbing;
+    }
+    .relative-turn-control-handle::before {
+      content: '⋮⋮';
+      color: #00f5ff;
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-shadow: 0 0 6px #00f5ff;
+    }
+    .relative-turn-control.dragging .relative-turn-btn {
+      pointer-events: none;
+    }
+    .relative-turn-btn {
+      width: 60px;
+      height: 60px;
+      background: rgba(10, 10, 30, 0.9);
+      color: #00f5ff;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 24px;
+      border: 2px solid #00f5ff;
+      cursor: pointer;
+      text-shadow: 0 0 6px #00f5ff;
+      box-shadow: 0 0 8px rgba(0, 245, 255, 0.5);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      outline: none;
+      border-radius: 8px;
+    }
+    .relative-turn-btn:hover {
+      background: rgba(0, 245, 255, 0.1);
+      box-shadow: 0 0 15px rgba(0, 245, 255, 0.8);
+      text-shadow: 0 0 10px #00f5ff;
+    }
+    .relative-turn-btn:active {
+      background: rgba(0, 245, 255, 0.2);
+      transform: scale(0.95);
+    }
+    .relative-turn-btn .material-icons {
+      font-family: 'Material Icons';
+      font-size: 32px;
+      color: inherit;
+      line-height: 1;
     }
     .direction-btn {
       background: rgba(10, 10, 30, 0.9);
@@ -1502,6 +1693,7 @@
           <button id="menuToggle" title="Menu">☰</button>
           <div class="menu-dropdown" id="menuDropdown">
             <button id="clearHighScoreBtn" title="Clear High Score"><span class="material-icons">do_not_disturb</span> CLEAR HIGH SCORE</button>
+            <button id="controlModeBtn" title="Control Mode"><span class="material-icons">gamepad</span> CONTROL MODE</button>
             <button id="helpBtn" title="How to Play"><span class="material-icons">help</span> HELP</button>
           </div>
         </div>
@@ -1574,10 +1766,47 @@
       </div>
     </div>
   </div>
+  <div id="controlModeModal">
+    <div class="help-content">
+      <button id="closeControlMode" title="Close">×</button>
+      <h2>CONTROL MODE</h2>
+      <p>Choose how the directional controls work:</p>
+      <div style="display: flex; flex-direction: column; gap: 20px; margin-top: 20px;">
+        <div>
+          <button id="controlModeAbsolute" class="confirm-btn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <span class="material-icons" style="font-size: 20px; line-height: 1; display: flex; align-items: center;">navigation</span>
+            <span>ABSOLUTE DIRECTIONS</span>
+          </button>
+          <p style="margin-top: 8px; font-size: 12px; opacity: 0.8; color: #00f5ff; text-shadow: 0 0 4px rgba(0, 245, 255, 0.3); padding-left: 4px;">
+            Up/Down/Left/Right buttons always move in those directions.
+          </p>
+        </div>
+        <div>
+          <button id="controlModeRelative" class="confirm-btn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <span class="material-icons" style="font-size: 20px; line-height: 1; display: flex; align-items: center;">rotate_left</span>
+            <span>RELATIVE TURNS (LEFT/RIGHT)</span>
+          </button>
+          <p style="margin-top: 8px; font-size: 12px; opacity: 0.8; color: #00f5ff; text-shadow: 0 0 4px rgba(0, 245, 255, 0.3); padding-left: 4px;">
+            Buttons turn the snake left or right from its current facing direction.
+          </p>
+        </div>
+        <div>
+          <button id="resetControlPositions" class="confirm-btn reset-btn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px;">
+            <span class="material-icons" style="font-size: 20px; line-height: 1; display: flex; align-items: center;">refresh</span>
+            <span>RESET CONTROL POSITIONS</span>
+          </button>
+          <p style="margin-top: 8px; font-size: 12px; opacity: 0.8; color: #ff6b35; text-shadow: 0 0 4px rgba(255, 107, 53, 0.3); padding-left: 4px;">
+            Reset all control positions to their default locations.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="high-score-system">
     HIGH SCORE: <strong id="highscore">0</strong>
   </div>
-  <div class="direction-controls">
+  <div class="direction-controls" id="directionControls">
+    <div class="direction-controls-handle" id="directionControlsHandle"></div>
     <div class="direction-btn empty"></div>
     <button class="direction-btn" id="btnUp" title="Up"><span class="material-icons">arrow_upward</span></button>
     <div class="direction-btn empty"></div>
@@ -1587,6 +1816,14 @@
     <div class="direction-btn empty"></div>
     <button class="direction-btn" id="btnDown" title="Down"><span class="material-icons">arrow_downward</span></button>
     <div class="direction-btn empty"></div>
+  </div>
+  <div class="relative-turn-control" id="relativeTurnLeft">
+    <div class="relative-turn-control-handle" id="relativeTurnLeftHandle"></div>
+    <button class="relative-turn-btn" id="btnTurnLeft" title="Turn Left"><span class="material-icons">rotate_left</span></button>
+  </div>
+  <div class="relative-turn-control" id="relativeTurnRight">
+    <div class="relative-turn-control-handle" id="relativeTurnRightHandle"></div>
+    <button class="relative-turn-btn" id="btnTurnRight" title="Turn Right"><span class="material-icons">rotate_right</span></button>
   </div>
   <div id="gameOver">
     <div class="game-over-content">
@@ -1671,9 +1908,21 @@
     resizeCanvas();
     window.addEventListener('resize', () => {
       setTimeout(resizeCanvas, 150);
+      // Reposition relative controls if in relative mode and not manually positioned
+      if (controlMode === 'relative') {
+        setTimeout(() => {
+          positionRelativeControlsAtBottom();
+        }, 200);
+      }
     });
     window.addEventListener('orientationchange', () => {
       setTimeout(resizeCanvas, 100);
+      // Reposition relative controls if in relative mode and not manually positioned
+      if (controlMode === 'relative') {
+        setTimeout(() => {
+          positionRelativeControlsAtBottom();
+        }, 200);
+      }
     });
 
     // Sound Manager
@@ -2122,9 +2371,20 @@
           if (autodriveActive) {
             const aiDirection = findPathToFood();
             if (aiDirection) {
+              // Check if direction is actually changing
+              const checkDir = directionQueue.length > 0 
+                ? directionQueue[directionQueue.length - 1] 
+                : nextDirection;
+              const isDirectionChanging = aiDirection.x !== checkDir.x || aiDirection.y !== checkDir.y;
+              
               // Clear queue and set AI direction
               directionQueue = [];
               nextDirection = aiDirection;
+              
+              // Play sound when direction changes
+              if (isDirectionChanging) {
+                SoundManager.playDirectionChange();
+              }
             }
           }
           
@@ -2813,11 +3073,457 @@
       touchStartY = null;
     }, { passive: false });
 
-    // Direction button controls
-    document.getElementById('btnUp').addEventListener('click', () => changeDirection({ x: 0, y: -1 }));
-    document.getElementById('btnDown').addEventListener('click', () => changeDirection({ x: 0, y: 1 }));
-    document.getElementById('btnLeft').addEventListener('click', () => changeDirection({ x: -1, y: 0 }));
-    document.getElementById('btnRight').addEventListener('click', () => changeDirection({ x: 1, y: 0 }));
+    // Control mode state (absolute or relative)
+    let controlMode = localStorage.getItem('controlMode') || 'absolute'; // 'absolute' or 'relative'
+    
+    // Function to calculate relative turn direction
+    function getRelativeDirection(turn) {
+      // turn: 'left' or 'right'
+      // Get current direction - use directionQueue if available, otherwise nextDirection, otherwise direction
+      let currentDir;
+      if (directionQueue.length > 0) {
+        currentDir = directionQueue[directionQueue.length - 1];
+      } else if (nextDirection.x !== 0 || nextDirection.y !== 0) {
+        currentDir = nextDirection;
+      } else {
+        currentDir = direction;
+      }
+      
+      // If snake has multiple segments, we can also check the actual movement direction
+      if (snake.length > 1) {
+        const head = snake[0];
+        const neck = snake[1];
+        const actualDir = { x: head.x - neck.x, y: head.y - neck.y };
+        // Normalize in case of wrapping
+        if (actualDir.x !== 0 || actualDir.y !== 0) {
+          currentDir = {
+            x: actualDir.x > 0 ? 1 : (actualDir.x < 0 ? -1 : 0),
+            y: actualDir.y > 0 ? 1 : (actualDir.y < 0 ? -1 : 0)
+          };
+        }
+      }
+      
+      // Calculate relative turn
+      // Current direction vectors:
+      // Up: {x: 0, y: -1}
+      // Right: {x: 1, y: 0}
+      // Down: {x: 0, y: 1}
+      // Left: {x: -1, y: 0}
+      
+      if (turn === 'left') {
+        // Turn left: rotate 90 degrees counter-clockwise
+        // Up -> Left, Left -> Down, Down -> Right, Right -> Up
+        return { x: currentDir.y, y: -currentDir.x };
+      } else if (turn === 'right') {
+        // Turn right: rotate 90 degrees clockwise
+        // Up -> Right, Right -> Down, Down -> Left, Left -> Up
+        return { x: -currentDir.y, y: currentDir.x };
+      }
+      return currentDir;
+    }
+    
+    // Function to position relative controls at bottom of game area
+    function positionRelativeControlsAtBottom() {
+      const relativeTurnLeft = document.getElementById('relativeTurnLeft');
+      const relativeTurnRight = document.getElementById('relativeTurnRight');
+      const leftPos = localStorage.getItem('relativeTurnLeftPosition');
+      const rightPos = localStorage.getItem('relativeTurnRightPosition');
+      
+      // Only position if not already saved
+      if (!leftPos || !rightPos) {
+        // Calculate position below game area (not inside it)
+        const gameContainer = document.getElementById('game-container');
+        if (gameContainer) {
+          const containerRect = gameContainer.getBoundingClientRect();
+          const controlHeight = 60; // Height of the control button
+          const controlWidth = 60; // Width of the control button
+          const padding = 20; // Padding from edges
+          const spacingBelow = 25; // Space below the game container
+          
+          // Position below the game container
+          const bottomY = containerRect.bottom + spacingBelow;
+          
+          if (!leftPos && relativeTurnLeft) {
+            // Position at bottom-left, below game area
+            relativeTurnLeft.style.left = (containerRect.left + padding) + 'px';
+            relativeTurnLeft.style.top = bottomY + 'px';
+            relativeTurnLeft.style.transform = 'none';
+            relativeTurnLeft.style.bottom = 'auto';
+            relativeTurnLeft.style.right = 'auto';
+          }
+          
+          if (!rightPos && relativeTurnRight) {
+            // Position at bottom-right, below game area
+            relativeTurnRight.style.left = (containerRect.right - controlWidth - padding) + 'px';
+            relativeTurnRight.style.top = bottomY + 'px';
+            relativeTurnRight.style.transform = 'none';
+            relativeTurnRight.style.bottom = 'auto';
+            relativeTurnRight.style.right = 'auto';
+          }
+        } else {
+          // Fallback if game container not found
+          if (!leftPos && relativeTurnLeft) {
+            relativeTurnLeft.style.left = '20px';
+            relativeTurnLeft.style.bottom = '20px';
+            relativeTurnLeft.style.top = 'auto';
+            relativeTurnLeft.style.transform = 'none';
+            relativeTurnLeft.style.right = 'auto';
+          }
+          if (!rightPos && relativeTurnRight) {
+            relativeTurnRight.style.right = '20px';
+            relativeTurnRight.style.bottom = '20px';
+            relativeTurnRight.style.top = 'auto';
+            relativeTurnRight.style.transform = 'none';
+            relativeTurnRight.style.left = 'auto';
+          }
+        }
+      }
+    }
+    
+    // Update direction button handlers based on control mode
+    function updateDirectionButtons() {
+      const directionControls = document.getElementById('directionControls');
+      const relativeTurnLeft = document.getElementById('relativeTurnLeft');
+      const relativeTurnRight = document.getElementById('relativeTurnRight');
+      const btnTurnLeft = document.getElementById('btnTurnLeft');
+      const btnTurnRight = document.getElementById('btnTurnRight');
+      
+      if (controlMode === 'relative') {
+        // Hide absolute direction controls
+        directionControls.style.display = 'none';
+        
+        // Show relative turn controls
+        relativeTurnLeft.classList.add('show');
+        relativeTurnRight.classList.add('show');
+        
+        // Remove existing listeners by cloning and replacing buttons
+        const newBtnTurnLeft = btnTurnLeft.cloneNode(true);
+        const newBtnTurnRight = btnTurnRight.cloneNode(true);
+        btnTurnLeft.parentNode.replaceChild(newBtnTurnLeft, btnTurnLeft);
+        btnTurnRight.parentNode.replaceChild(newBtnTurnRight, btnTurnRight);
+        
+        // Update references
+        const updatedBtnTurnLeft = document.getElementById('btnTurnLeft');
+        const updatedBtnTurnRight = document.getElementById('btnTurnRight');
+        
+        // Set up relative turn buttons
+        updatedBtnTurnLeft.addEventListener('click', () => {
+          const newDir = getRelativeDirection('left');
+          changeDirection(newDir);
+        });
+        updatedBtnTurnRight.addEventListener('click', () => {
+          const newDir = getRelativeDirection('right');
+          changeDirection(newDir);
+        });
+        
+        // Position relative controls at bottom of game area (if not already positioned)
+        // Use setTimeout to ensure game container is rendered
+        setTimeout(() => {
+          positionRelativeControlsAtBottom();
+        }, 100);
+      } else {
+        // Hide relative turn controls
+        relativeTurnLeft.classList.remove('show');
+        relativeTurnRight.classList.remove('show');
+        
+        // Show absolute direction controls
+        directionControls.style.display = 'grid';
+        
+        // Set up absolute direction buttons
+        const btnUp = document.getElementById('btnUp');
+        const btnDown = document.getElementById('btnDown');
+        const btnLeft = document.getElementById('btnLeft');
+        const btnRight = document.getElementById('btnRight');
+        
+        // Remove existing listeners by cloning and replacing
+        const newBtnUp = btnUp.cloneNode(true);
+        const newBtnDown = btnDown.cloneNode(true);
+        const newBtnLeft = btnLeft.cloneNode(true);
+        const newBtnRight = btnRight.cloneNode(true);
+        
+        btnUp.parentNode.replaceChild(newBtnUp, btnUp);
+        btnDown.parentNode.replaceChild(newBtnDown, btnDown);
+        btnLeft.parentNode.replaceChild(newBtnLeft, btnLeft);
+        btnRight.parentNode.replaceChild(newBtnRight, btnRight);
+        
+        newBtnUp.addEventListener('click', () => changeDirection({ x: 0, y: -1 }));
+        newBtnDown.addEventListener('click', () => changeDirection({ x: 0, y: 1 }));
+        newBtnLeft.addEventListener('click', () => changeDirection({ x: -1, y: 0 }));
+        newBtnRight.addEventListener('click', () => changeDirection({ x: 1, y: 0 }));
+      }
+    }
+    
+    // Initialize direction buttons
+    updateDirectionButtons();
+    
+    // Draggable direction controls
+    const directionControls = document.getElementById('directionControls');
+    const directionControlsHandle = document.getElementById('directionControlsHandle');
+    let isDragging = false;
+    let dragOffset = { x: 0, y: 0 };
+    
+    // Load saved position
+    const savedPosition = localStorage.getItem('directionControlsPosition');
+    if (savedPosition) {
+      const pos = JSON.parse(savedPosition);
+      directionControls.style.left = pos.left + 'px';
+      directionControls.style.top = pos.top + 'px';
+      directionControls.style.bottom = 'auto';
+      directionControls.style.right = 'auto';
+    }
+    
+    function savePosition() {
+      const rect = directionControls.getBoundingClientRect();
+      localStorage.setItem('directionControlsPosition', JSON.stringify({
+        left: rect.left,
+        top: rect.top
+      }));
+    }
+    
+    // Handle drag start
+    function startDrag(e) {
+      // Only drag from handle, not from buttons
+      const target = e.target;
+      if (target !== directionControlsHandle && 
+          !directionControlsHandle.contains(target) &&
+          !target.closest('.direction-controls-handle')) {
+        return;
+      }
+      isDragging = true;
+      directionControls.classList.add('dragging');
+      const rect = directionControls.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      dragOffset.x = clientX - rect.left;
+      dragOffset.y = clientY - rect.top;
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    // Handle drag
+    function doDrag(e) {
+      if (!isDragging) return;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      
+      let newLeft = clientX - dragOffset.x;
+      let newTop = clientY - dragOffset.y;
+      
+      // Constrain to viewport
+      const rect = directionControls.getBoundingClientRect();
+      const maxLeft = window.innerWidth - rect.width;
+      const maxTop = window.innerHeight - rect.height;
+      
+      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+      newTop = Math.max(0, Math.min(newTop, maxTop));
+      
+      directionControls.style.left = newLeft + 'px';
+      directionControls.style.top = newTop + 'px';
+      directionControls.style.bottom = 'auto';
+      directionControls.style.right = 'auto';
+      
+      e.preventDefault();
+    }
+    
+    // Handle drag end
+    function endDrag() {
+      if (isDragging) {
+        isDragging = false;
+        directionControls.classList.remove('dragging');
+        savePosition();
+      }
+    }
+    
+    // Add event listeners for dragging
+    directionControlsHandle.addEventListener('mousedown', startDrag);
+    directionControlsHandle.addEventListener('touchstart', startDrag, { passive: false });
+    document.addEventListener('mousemove', doDrag);
+    document.addEventListener('touchmove', doDrag, { passive: false });
+    document.addEventListener('mouseup', endDrag);
+    document.addEventListener('touchend', endDrag);
+    
+    // Prevent button clicks from triggering drag
+    directionControls.addEventListener('mousedown', (e) => {
+      const target = e.target;
+      // Allow buttons to work normally
+      if (target.closest('.direction-btn') && !target.closest('.direction-controls-handle')) {
+        return; // Let button click handlers work
+      }
+      // Only allow drag from handle
+      if (target !== directionControlsHandle && !target.closest('.direction-controls-handle')) {
+        e.stopPropagation();
+      }
+    });
+    
+    // Draggable relative turn controls (will be initialized after updateDirectionButtons)
+    let relativeTurnLeft = document.getElementById('relativeTurnLeft');
+    let relativeTurnRight = document.getElementById('relativeTurnRight');
+    let relativeTurnLeftHandle = document.getElementById('relativeTurnLeftHandle');
+    let relativeTurnRightHandle = document.getElementById('relativeTurnRightHandle');
+    let isDraggingLeft = false;
+    let isDraggingRight = false;
+    let dragOffsetLeft = { x: 0, y: 0 };
+    let dragOffsetRight = { x: 0, y: 0 };
+    
+    // Load saved positions for relative controls
+    const savedLeftPos = localStorage.getItem('relativeTurnLeftPosition');
+    const savedRightPos = localStorage.getItem('relativeTurnRightPosition');
+    if (savedLeftPos) {
+      const pos = JSON.parse(savedLeftPos);
+      relativeTurnLeft.style.left = pos.left + 'px';
+      relativeTurnLeft.style.top = pos.top + 'px';
+      relativeTurnLeft.style.bottom = 'auto';
+      relativeTurnLeft.style.right = 'auto';
+      relativeTurnLeft.style.transform = 'none';
+    }
+    if (savedRightPos) {
+      const pos = JSON.parse(savedRightPos);
+      relativeTurnRight.style.left = pos.left + 'px';
+      relativeTurnRight.style.top = pos.top + 'px';
+      relativeTurnRight.style.bottom = 'auto';
+      relativeTurnRight.style.right = 'auto';
+      relativeTurnRight.style.transform = 'none';
+    }
+    
+    function saveRelativePosition(control, isLeft) {
+      const rect = control.getBoundingClientRect();
+      const key = isLeft ? 'relativeTurnLeftPosition' : 'relativeTurnRightPosition';
+      localStorage.setItem(key, JSON.stringify({
+        left: rect.left,
+        top: rect.top
+      }));
+    }
+    
+    // Handle drag start for left control
+    function startDragLeft(e) {
+      const target = e.target;
+      if (target !== relativeTurnLeftHandle && 
+          !relativeTurnLeftHandle.contains(target) &&
+          !target.closest('.relative-turn-control-handle')) {
+        return;
+      }
+      isDraggingLeft = true;
+      relativeTurnLeft.classList.add('dragging');
+      const rect = relativeTurnLeft.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      dragOffsetLeft.x = clientX - rect.left;
+      dragOffsetLeft.y = clientY - rect.top;
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    // Handle drag start for right control
+    function startDragRight(e) {
+      const target = e.target;
+      if (target !== relativeTurnRightHandle && 
+          !relativeTurnRightHandle.contains(target) &&
+          !target.closest('.relative-turn-control-handle')) {
+        return;
+      }
+      isDraggingRight = true;
+      relativeTurnRight.classList.add('dragging');
+      const rect = relativeTurnRight.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      dragOffsetRight.x = clientX - rect.left;
+      dragOffsetRight.y = clientY - rect.top;
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    // Handle drag for relative controls
+    function doDragRelative(e) {
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      
+      if (isDraggingLeft) {
+        let newLeft = clientX - dragOffsetLeft.x;
+        let newTop = clientY - dragOffsetLeft.y;
+        
+        const rect = relativeTurnLeft.getBoundingClientRect();
+        const maxLeft = window.innerWidth - rect.width;
+        const maxTop = window.innerHeight - rect.height;
+        
+        newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+        newTop = Math.max(0, Math.min(newTop, maxTop));
+        
+        relativeTurnLeft.style.left = newLeft + 'px';
+        relativeTurnLeft.style.top = newTop + 'px';
+        relativeTurnLeft.style.bottom = 'auto';
+        relativeTurnLeft.style.right = 'auto';
+        relativeTurnLeft.style.transform = 'none';
+      }
+      
+      if (isDraggingRight) {
+        let newLeft = clientX - dragOffsetRight.x;
+        let newTop = clientY - dragOffsetRight.y;
+        
+        const rect = relativeTurnRight.getBoundingClientRect();
+        const maxLeft = window.innerWidth - rect.width;
+        const maxTop = window.innerHeight - rect.height;
+        
+        newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+        newTop = Math.max(0, Math.min(newTop, maxTop));
+        
+        relativeTurnRight.style.left = newLeft + 'px';
+        relativeTurnRight.style.top = newTop + 'px';
+        relativeTurnRight.style.bottom = 'auto';
+        relativeTurnRight.style.right = 'auto';
+        relativeTurnRight.style.transform = 'none';
+      }
+      
+      if (isDraggingLeft || isDraggingRight) {
+        e.preventDefault();
+      }
+    }
+    
+    // Handle drag end for relative controls
+    function endDragRelative() {
+      if (isDraggingLeft) {
+        isDraggingLeft = false;
+        relativeTurnLeft.classList.remove('dragging');
+        saveRelativePosition(relativeTurnLeft, true);
+      }
+      if (isDraggingRight) {
+        isDraggingRight = false;
+        relativeTurnRight.classList.remove('dragging');
+        saveRelativePosition(relativeTurnRight, false);
+      }
+    }
+    
+    // Add event listeners for dragging relative controls
+    relativeTurnLeftHandle.addEventListener('mousedown', startDragLeft);
+    relativeTurnLeftHandle.addEventListener('touchstart', startDragLeft, { passive: false });
+    relativeTurnRightHandle.addEventListener('mousedown', startDragRight);
+    relativeTurnRightHandle.addEventListener('touchstart', startDragRight, { passive: false });
+    
+    // Update global drag handlers to include relative controls
+    document.addEventListener('mousemove', doDragRelative);
+    document.addEventListener('touchmove', doDragRelative, { passive: false });
+    document.addEventListener('mouseup', endDragRelative);
+    document.addEventListener('touchend', endDragRelative);
+    
+    // Prevent button clicks from triggering drag on relative controls
+    relativeTurnLeft.addEventListener('mousedown', (e) => {
+      const target = e.target;
+      if (target.closest('.relative-turn-btn') && !target.closest('.relative-turn-control-handle')) {
+        return;
+      }
+      if (target !== relativeTurnLeftHandle && !target.closest('.relative-turn-control-handle')) {
+        e.stopPropagation();
+      }
+    });
+    
+    relativeTurnRight.addEventListener('mousedown', (e) => {
+      const target = e.target;
+      if (target.closest('.relative-turn-btn') && !target.closest('.relative-turn-control-handle')) {
+        return;
+      }
+      if (target !== relativeTurnRightHandle && !target.closest('.relative-turn-control-handle')) {
+        e.stopPropagation();
+      }
+    });
 
     // Restart button
     restartBtn.addEventListener('click', () => {
@@ -2971,10 +3677,38 @@
     }
 
     if (autodriveSpeedSlider && autodriveSpeedValue) {
-      autodriveSpeedSlider.addEventListener('input', (e) => {
+      // Use both input and change events for better touch support
+      const updateSpeed = (e) => {
         autodriveSpeed = parseFloat(e.target.value);
         autodriveSpeedValue.textContent = autodriveSpeed + 'x';
-      });
+      };
+      autodriveSpeedSlider.addEventListener('input', updateSpeed);
+      autodriveSpeedSlider.addEventListener('change', updateSpeed);
+      
+      // Prevent scrolling when interacting with slider on touch devices
+      autodriveSpeedSlider.addEventListener('touchstart', (e) => {
+        // Allow the slider to work, but prevent page scrolling
+        const touch = e.touches[0];
+        const sliderRect = autodriveSpeedSlider.getBoundingClientRect();
+        const percentage = (touch.clientX - sliderRect.left) / sliderRect.width;
+        const min = parseFloat(autodriveSpeedSlider.min);
+        const max = parseFloat(autodriveSpeedSlider.max);
+        const value = min + (percentage * (max - min));
+        autodriveSpeedSlider.value = Math.max(min, Math.min(max, value));
+        updateSpeed({ target: autodriveSpeedSlider });
+      }, { passive: false });
+      
+      autodriveSpeedSlider.addEventListener('touchmove', (e) => {
+        e.preventDefault(); // Prevent scrolling
+        const touch = e.touches[0];
+        const sliderRect = autodriveSpeedSlider.getBoundingClientRect();
+        const percentage = (touch.clientX - sliderRect.left) / sliderRect.width;
+        const min = parseFloat(autodriveSpeedSlider.min);
+        const max = parseFloat(autodriveSpeedSlider.max);
+        const value = min + (percentage * (max - min));
+        autodriveSpeedSlider.value = Math.max(min, Math.min(max, value));
+        updateSpeed({ target: autodriveSpeedSlider });
+      }, { passive: false });
     }
 
     const spawnSnackBtn = document.getElementById('spawnSnack');
@@ -3107,6 +3841,95 @@
       });
     }
 
+    // Control mode modal
+    const controlModeBtn = document.getElementById('controlModeBtn');
+    const controlModeModal = document.getElementById('controlModeModal');
+    const closeControlMode = document.getElementById('closeControlMode');
+    const controlModeAbsolute = document.getElementById('controlModeAbsolute');
+    const controlModeRelative = document.getElementById('controlModeRelative');
+
+    if (controlModeBtn) {
+      controlModeBtn.addEventListener('click', () => {
+        controlModeModal.classList.add('show');
+        if (menuDropdown) menuDropdown.classList.remove('show');
+      });
+    }
+
+    if (closeControlMode) {
+      closeControlMode.addEventListener('click', () => {
+        controlModeModal.classList.remove('show');
+      });
+    }
+
+    // Control mode modal should only close with X button, not by clicking outside
+
+    function setControlMode(mode) {
+      controlMode = mode;
+      localStorage.setItem('controlMode', mode);
+      updateDirectionButtons();
+      // Don't close the modal - let user see the controls change and close manually with X
+    }
+
+    if (controlModeAbsolute) {
+      controlModeAbsolute.addEventListener('click', () => {
+        setControlMode('absolute');
+      });
+    }
+
+    if (controlModeRelative) {
+      controlModeRelative.addEventListener('click', () => {
+        setControlMode('relative');
+      });
+    }
+
+    // Reset control positions button
+    const resetControlPositions = document.getElementById('resetControlPositions');
+    if (resetControlPositions) {
+      resetControlPositions.addEventListener('click', () => {
+        // Clear saved positions from localStorage
+        localStorage.removeItem('directionControlsPosition');
+        localStorage.removeItem('relativeTurnLeftPosition');
+        localStorage.removeItem('relativeTurnRightPosition');
+        
+        // Reset absolute direction controls to default position
+        const directionControls = document.getElementById('directionControls');
+        if (directionControls) {
+          directionControls.style.left = '80px';
+          directionControls.style.top = 'auto';
+          directionControls.style.bottom = '40px';
+          directionControls.style.right = 'auto';
+          directionControls.style.transform = 'none';
+        }
+        
+        // Reset relative turn controls
+        const relativeTurnLeft = document.getElementById('relativeTurnLeft');
+        const relativeTurnRight = document.getElementById('relativeTurnRight');
+        
+        if (relativeTurnLeft && relativeTurnRight) {
+          // Clear their positions and reposition at bottom of game area
+          relativeTurnLeft.style.left = '';
+          relativeTurnLeft.style.top = '';
+          relativeTurnLeft.style.bottom = '';
+          relativeTurnLeft.style.right = '';
+          relativeTurnLeft.style.transform = '';
+          
+          relativeTurnRight.style.left = '';
+          relativeTurnRight.style.top = '';
+          relativeTurnRight.style.bottom = '';
+          relativeTurnRight.style.right = '';
+          relativeTurnRight.style.transform = '';
+          
+          // Reposition at bottom of game area
+          setTimeout(() => {
+            positionRelativeControlsAtBottom();
+          }, 100);
+        }
+        
+        // Play feedback sound
+        SoundManager.playGlitch();
+      });
+    }
+
     // Close modals with Escape
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
@@ -3116,6 +3939,7 @@
         if (confirmModal && confirmModal.classList.contains('show')) {
           confirmModal.classList.remove('show');
         }
+        // Control mode modal should only close with X button, not Escape
       }
     });
 
@@ -3126,6 +3950,13 @@
     
     // Show start button initially
     showStartButton();
+    
+    // Position relative controls on initial load if in relative mode
+    if (controlMode === 'relative') {
+      setTimeout(() => {
+        positionRelativeControlsAtBottom();
+      }, 200);
+    }
     
     // Start button click handler
     if (startGameBtn) {
