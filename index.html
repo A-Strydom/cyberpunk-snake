@@ -5235,26 +5235,43 @@
     function updateHamiltonianStatus() {
       if (!hamiltonianPathStatus) return;
       
-      const visited = new Set();
-      const duplicates = [];
+      const totalCells = GRID_SIZE * GRID_SIZE;
+      const isValid = validateHamiltonianPath();
+      
+      // Check for duplicates, but allow (0,0) at start and end for valid cycles
+      const visited = new Map(); // Use Map to count occurrences
       currentPath.forEach((cell, index) => {
         const key = `${cell.x},${cell.y}`;
-        if (visited.has(key)) {
-          duplicates.push({ cell, index });
-        }
-        visited.add(key);
+        visited.set(key, (visited.get(key) || 0) + 1);
       });
       
-      const totalCells = GRID_SIZE * GRID_SIZE;
-      const remaining = totalCells - visited.size;
-      const isValid = validateHamiltonianPath();
+      // Check for actual duplicates (excluding valid (0,0) at start/end)
+      const duplicates = [];
+      visited.forEach((count, key) => {
+        if (count > 1) {
+          // Allow (0,0) to appear twice only if it's at start and end of a complete cycle
+          if (key === '0,0' && count === 2 && 
+              currentPath.length === totalCells + 1 &&
+              currentPath[0].x === 0 && currentPath[0].y === 0 &&
+              currentPath[currentPath.length - 1].x === 0 && currentPath[currentPath.length - 1].y === 0) {
+            // This is a valid cycle completion, not a duplicate
+            return;
+          }
+          // Any other duplicate is invalid
+          duplicates.push(key);
+        }
+      });
+      
+      const uniqueVisited = new Set();
+      currentPath.forEach(c => uniqueVisited.add(`${c.x},${c.y}`));
+      const remaining = totalCells - uniqueVisited.size;
       
       if (currentPath.length === 0) {
         hamiltonianPathStatus.textContent = 'Click and drag to start drawing the path';
         hamiltonianPathStatus.style.background = 'rgba(0, 245, 255, 0.2)';
         hamiltonianPathStatus.style.color = '#00f5ff';
       } else if (duplicates.length > 0) {
-        hamiltonianPathStatus.textContent = `⚠️ Duplicate cells detected! Path has ${duplicates.length} duplicate(s)`;
+        hamiltonianPathStatus.textContent = `⚠️ Duplicate cells detected! Path has duplicate(s): ${duplicates.join(', ')}`;
         hamiltonianPathStatus.style.background = 'rgba(255, 0, 64, 0.3)';
         hamiltonianPathStatus.style.color = '#ff0040';
       } else if (!isValid.continuous) {
