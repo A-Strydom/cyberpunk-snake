@@ -2519,122 +2519,62 @@
       const snakeLength = snake.length;
       if (snakeLength === 0) return;
       
-      // Calculate center points for each segment
+      // Calculate center points for each segment (using actual grid positions)
       const centers = snake.map(segment => ({
         x: segment.x * cellSize + cellSize / 2,
-        y: segment.y * cellSize + cellSize / 2
+        y: segment.y * cellSize + cellSize / 2,
+        gridX: segment.x,
+        gridY: segment.y
       }));
       
-      // Helper function to calculate distance between two points (handling wrap)
-      function getDistance(p1, p2) {
-        let dx = p2.x - p1.x;
-        let dy = p2.y - p1.y;
-        
-        // Check for wrapping (if distance is more than half the canvas, it wrapped)
-        const canvasSize = GRID_SIZE * cellSize;
-        if (Math.abs(dx) > canvasSize / 2) {
-          dx = dx > 0 ? dx - canvasSize : dx + canvasSize;
-        }
-        if (Math.abs(dy) > canvasSize / 2) {
-          dy = dy > 0 ? dy - canvasSize : dy + canvasSize;
-        }
-        
-        return Math.sqrt(dx * dx + dy * dy);
-      }
-      
-      // Helper function to normalize wrapped positions
-      function normalizePoint(p, prevP) {
-        const canvasSize = GRID_SIZE * cellSize;
-        let x = p.x;
-        let y = p.y;
-        
-        if (prevP) {
-          // Check if wrapped
-          let dx = x - prevP.x;
-          let dy = y - prevP.y;
-          
-          if (Math.abs(dx) > canvasSize / 2) {
-            x = dx > 0 ? x - canvasSize : x + canvasSize;
-          }
-          if (Math.abs(dy) > canvasSize / 2) {
-            y = dy > 0 ? y - canvasSize : y + canvasSize;
-          }
-        }
-        
-        return { x, y };
-      }
-      
-      // Normalize all points to handle wrapping
-      const normalizedCenters = [];
-      for (let i = 0; i < centers.length; i++) {
-        const prev = i > 0 ? normalizedCenters[i - 1] : null;
-        normalizedCenters.push(normalizePoint(centers[i], prev));
-      }
-      
-      // Draw the snake as a continuous path with curves
+      const canvasSize = GRID_SIZE * cellSize;
       const radius = cellSize * 0.4; // Snake body radius
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       
-      // Build the path
-      const snakePath = new Path2D();
-      snakePath.moveTo(normalizedCenters[0].x, normalizedCenters[0].y);
-      
-      for (let i = 1; i < normalizedCenters.length; i++) {
-        const prev = normalizedCenters[i - 1];
-        const curr = normalizedCenters[i];
-        const next = i < normalizedCenters.length - 1 ? normalizedCenters[i + 1] : null;
+      // Helper function to detect if two segments wrap around an edge
+      function detectWrap(p1, p2) {
+        const dx = p2.gridX - p1.gridX;
+        const dy = p2.gridY - p1.gridY;
         
-        if (next) {
-          // Calculate direction vectors
-          const dir1 = { x: curr.x - prev.x, y: curr.y - prev.y };
-          const dir2 = { x: next.x - curr.x, y: next.y - curr.y };
-          
-          // Normalize direction vectors
-          const len1 = Math.sqrt(dir1.x * dir1.x + dir1.y * dir1.y);
-          const len2 = Math.sqrt(dir2.x * dir2.x + dir2.y * dir2.y);
-          
-          if (len1 > 0 && len2 > 0) {
-            dir1.x /= len1;
-            dir1.y /= len1;
-            dir2.x /= len2;
-            dir2.y /= len2;
-            
-            // Check if turning (not going straight)
-            const dot = dir1.x * dir2.x + dir1.y * dir2.y;
-            const isTurning = dot < 0.99; // Not perfectly aligned
-            
-            if (isTurning) {
-              // Draw curve at corner
-              const curveRadius = Math.min(radius * 0.6, cellSize * 0.3);
-              const cornerX = curr.x - dir1.x * curveRadius;
-              const cornerY = curr.y - dir1.y * curveRadius;
-              const cornerX2 = curr.x + dir2.x * curveRadius;
-              const cornerY2 = curr.y + dir2.y * curveRadius;
-              
-              snakePath.lineTo(cornerX, cornerY);
-              snakePath.quadraticCurveTo(curr.x, curr.y, cornerX2, cornerY2);
-            } else {
-              // Straight line
-              snakePath.lineTo(curr.x, curr.y);
-            }
-          } else {
-            snakePath.lineTo(curr.x, curr.y);
+        // Check for horizontal wrap
+        // If the absolute difference is more than half the grid size, it wrapped
+        // Also check if segments are at opposite edges (0 and GRID_SIZE-1)
+        const wrapsX = Math.abs(dx) > GRID_SIZE / 2 || 
+                       (Math.abs(dx) === GRID_SIZE - 1 && (p1.gridX === 0 || p2.gridX === 0));
+        
+        // Check for vertical wrap
+        const wrapsY = Math.abs(dy) > GRID_SIZE / 2 || 
+                       (Math.abs(dy) === GRID_SIZE - 1 && (p1.gridY === 0 || p2.gridY === 0));
+        
+        return { wrapsX, wrapsY };
+      }
+      
+      // Split snake into continuous segments at wrap points
+      const segments = [];
+      let currentSegment = [centers[0]];
+      
+      for (let i = 1; i < centers.length; i++) {
+        const prev = centers[i - 1];
+        const curr = centers[i];
+        const wrap = detectWrap(prev, curr);
+        
+        if (wrap.wrapsX || wrap.wrapsY) {
+          // Wrap detected - close current segment and start new one
+          if (currentSegment.length > 0) {
+            segments.push(currentSegment);
           }
+          currentSegment = [curr];
         } else {
-          // Last segment - just line to tail
-          snakePath.lineTo(curr.x, curr.y);
+          // No wrap - continue current segment
+          currentSegment.push(curr);
         }
       }
       
-      // Create gradient for the snake
-      const gradient = ctx.createLinearGradient(
-        normalizedCenters[0].x, normalizedCenters[0].y,
-        normalizedCenters[normalizedCenters.length - 1].x, normalizedCenters[normalizedCenters.length - 1].y
-      );
-      gradient.addColorStop(0, '#00f5ff'); // Head - cyan
-      gradient.addColorStop(0.5, '#00aacc'); // Mid - darker cyan
-      gradient.addColorStop(1, '#9664ff'); // Tail - purple
+      // Add the last segment
+      if (currentSegment.length > 0) {
+        segments.push(currentSegment);
+      }
       
       // Create scale pattern overlay (cached for performance)
       if (!scalePattern) {
@@ -2688,28 +2628,221 @@
         scalePattern = ctx.createPattern(patternCanvas, 'repeat');
       }
       
-      // Draw the snake body with gradient
-      ctx.strokeStyle = gradient;
-      ctx.lineWidth = radius * 2;
-      ctx.shadowColor = 'rgba(0, 245, 255, 0.5)';
-      ctx.shadowBlur = 8;
-      ctx.stroke(snakePath);
+      // Draw each segment separately
+      for (let segIdx = 0; segIdx < segments.length; segIdx++) {
+        const segment = segments[segIdx];
+        if (segment.length === 0) continue;
+        
+        // Build path for this segment
+        const segmentPath = new Path2D();
+        segmentPath.moveTo(segment[0].x, segment[0].y);
+        
+        for (let i = 1; i < segment.length; i++) {
+          const prev = segment[i - 1];
+          const curr = segment[i];
+          const next = i < segment.length - 1 ? segment[i + 1] : null;
+          
+          if (next) {
+            // Calculate direction vectors
+            const dir1 = { x: curr.x - prev.x, y: curr.y - prev.y };
+            const dir2 = { x: next.x - curr.x, y: next.y - curr.y };
+            
+            // Normalize direction vectors
+            const len1 = Math.sqrt(dir1.x * dir1.x + dir1.y * dir1.y);
+            const len2 = Math.sqrt(dir2.x * dir2.x + dir2.y * dir2.y);
+            
+            if (len1 > 0 && len2 > 0) {
+              dir1.x /= len1;
+              dir1.y /= len1;
+              dir2.x /= len2;
+              dir2.y /= len2;
+              
+              // Check if turning (not going straight)
+              const dot = dir1.x * dir2.x + dir1.y * dir2.y;
+              const isTurning = dot < 0.99; // Not perfectly aligned
+              
+              if (isTurning) {
+                // Draw curve at corner
+                const curveRadius = Math.min(radius * 0.6, cellSize * 0.3);
+                const cornerX = curr.x - dir1.x * curveRadius;
+                const cornerY = curr.y - dir1.y * curveRadius;
+                const cornerX2 = curr.x + dir2.x * curveRadius;
+                const cornerY2 = curr.y + dir2.y * curveRadius;
+                
+                segmentPath.lineTo(cornerX, cornerY);
+                segmentPath.quadraticCurveTo(curr.x, curr.y, cornerX2, cornerY2);
+              } else {
+                // Straight line
+                segmentPath.lineTo(curr.x, curr.y);
+              }
+            } else {
+              segmentPath.lineTo(curr.x, curr.y);
+            }
+          } else {
+            // Last segment - just line to tail
+            segmentPath.lineTo(curr.x, curr.y);
+          }
+        }
+        
+        // Create gradient for this segment
+        const segmentStart = segment[0];
+        const segmentEnd = segment[segment.length - 1];
+        const gradient = ctx.createLinearGradient(
+          segmentStart.x, segmentStart.y,
+          segmentEnd.x, segmentEnd.y
+        );
+        
+        // Calculate position in overall snake for gradient colors
+        const segmentStartIdx = segIdx === 0 ? 0 : segments.slice(0, segIdx).reduce((sum, s) => sum + s.length, 0);
+        const segmentEndIdx = segmentStartIdx + segment.length - 1;
+        const headPos = 0;
+        const tailPos = snakeLength - 1;
+        const startRatio = tailPos > 0 ? segmentStartIdx / tailPos : 0;
+        const endRatio = tailPos > 0 ? segmentEndIdx / tailPos : 0;
+        
+        // Interpolate colors based on position in snake
+        const headColor = '#00f5ff'; // Cyan
+        const midColor = '#00aacc'; // Darker cyan
+        const tailColor = '#9664ff'; // Purple
+        
+        if (startRatio < 0.5) {
+          const t = startRatio * 2;
+          const startColor = interpolateColor(headColor, midColor, t);
+          gradient.addColorStop(0, startColor);
+        } else {
+          const t = (startRatio - 0.5) * 2;
+          const startColor = interpolateColor(midColor, tailColor, t);
+          gradient.addColorStop(0, startColor);
+        }
+        
+        if (endRatio < 0.5) {
+          const t = endRatio * 2;
+          const endColor = interpolateColor(headColor, midColor, t);
+          gradient.addColorStop(1, endColor);
+        } else {
+          const t = (endRatio - 0.5) * 2;
+          const endColor = interpolateColor(midColor, tailColor, t);
+          gradient.addColorStop(1, endColor);
+        }
+        
+        // Draw the segment body with gradient
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = radius * 2;
+        ctx.shadowColor = 'rgba(0, 245, 255, 0.5)';
+        ctx.shadowBlur = 8;
+        ctx.stroke(segmentPath);
+        
+        // Apply scale pattern overlay to snake body
+        ctx.save();
+        ctx.globalCompositeOperation = 'multiply'; // Blend with gradient
+        ctx.strokeStyle = scalePattern;
+        ctx.lineWidth = radius * 2;
+        ctx.shadowBlur = 0; // No shadow on pattern overlay
+        ctx.stroke(segmentPath); // Reuse the same path
+        ctx.restore();
+        
+        // Draw connection at wrap points (draw segment on both sides of wrap)
+        if (segIdx < segments.length - 1) {
+          const currentEnd = segment[segment.length - 1];
+          const nextStart = segments[segIdx + 1][0];
+          const wrap = detectWrap(currentEnd, nextStart);
+          
+          if (wrap.wrapsX || wrap.wrapsY) {
+            // Draw the connecting segment on both sides of the wrap
+            const wrapPath = new Path2D();
+            
+            // Calculate wrap exit point (on current segment's edge)
+            let exitX = currentEnd.x;
+            let exitY = currentEnd.y;
+            let entryX = nextStart.x;
+            let entryY = nextStart.y;
+            
+            if (wrap.wrapsX) {
+              // Horizontal wrap - draw on left and right edges
+              if (currentEnd.gridX > nextStart.gridX) {
+                // Wrapped from right to left
+                exitX = canvasSize;
+                entryX = 0;
+              } else {
+                // Wrapped from left to right
+                exitX = 0;
+                entryX = canvasSize;
+              }
+              exitY = currentEnd.y;
+              entryY = nextStart.y;
+            }
+            
+            if (wrap.wrapsY) {
+              // Vertical wrap - draw on top and bottom edges
+              if (currentEnd.gridY > nextStart.gridY) {
+                // Wrapped from bottom to top
+                exitY = canvasSize;
+                entryY = 0;
+              } else {
+                // Wrapped from top to bottom
+                exitY = 0;
+                entryY = canvasSize;
+              }
+              exitX = currentEnd.x;
+              entryX = nextStart.x;
+            }
+            
+            // Draw connecting path on exit side
+            wrapPath.moveTo(currentEnd.x, currentEnd.y);
+            wrapPath.lineTo(exitX, exitY);
+            
+            // Draw connecting path on entry side
+            wrapPath.moveTo(entryX, entryY);
+            wrapPath.lineTo(nextStart.x, nextStart.y);
+            
+            // Use color from the middle of the snake for wrap connections
+            const wrapGradient = ctx.createLinearGradient(exitX, exitY, entryX, entryY);
+            wrapGradient.addColorStop(0, midColor);
+            wrapGradient.addColorStop(1, midColor);
+            
+            ctx.strokeStyle = wrapGradient;
+            ctx.lineWidth = radius * 2;
+            ctx.shadowColor = 'rgba(0, 245, 255, 0.5)';
+            ctx.shadowBlur = 8;
+            ctx.stroke(wrapPath);
+            
+            // Apply scale pattern to wrap
+            ctx.save();
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.strokeStyle = scalePattern;
+            ctx.lineWidth = radius * 2;
+            ctx.shadowBlur = 0;
+            ctx.stroke(wrapPath);
+            ctx.restore();
+          }
+        }
+      }
       
-      // Apply scale pattern overlay to snake body
-      ctx.save();
-      ctx.globalCompositeOperation = 'multiply'; // Blend with gradient
-      ctx.strokeStyle = scalePattern;
-      ctx.lineWidth = radius * 2;
-      ctx.shadowBlur = 0; // No shadow on pattern overlay
-      ctx.stroke(snakePath); // Reuse the same path
-      ctx.restore();
+      // Helper function to interpolate between two hex colors
+      function interpolateColor(color1, color2, t) {
+        const c1 = hexToRgb(color1);
+        const c2 = hexToRgb(color2);
+        const r = Math.round(c1.r + (c2.r - c1.r) * t);
+        const g = Math.round(c1.g + (c2.g - c1.g) * t);
+        const b = Math.round(c1.b + (c2.b - c1.b) * t);
+        return `rgb(${r}, ${g}, ${b})`;
+      }
       
-      // Draw rounded tail cap to ensure it renders properly on mobile
-      // This ensures the tail has a proper rounded end even on devices where lineCap might not render correctly
-      if (normalizedCenters.length > 1) {
-        const tailX = normalizedCenters[normalizedCenters.length - 1].x;
-        const tailY = normalizedCenters[normalizedCenters.length - 1].y;
-        const prevTail = normalizedCenters[normalizedCenters.length - 2];
+      function hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+          r: parseInt(result[1], 16),
+          g: parseInt(result[2], 16),
+          b: parseInt(result[3], 16)
+        } : { r: 0, g: 0, b: 0 };
+      }
+      
+      // Draw rounded tail cap
+      const tailSegment = segments[segments.length - 1];
+      if (tailSegment && tailSegment.length > 1) {
+        const tailX = tailSegment[tailSegment.length - 1].x;
+        const tailY = tailSegment[tailSegment.length - 1].y;
+        const prevTail = tailSegment[tailSegment.length - 2];
         
         // Calculate tail direction for proper positioning
         const dirX = tailX - prevTail.x;
@@ -2720,7 +2853,6 @@
           const tailDir = { x: dirX / dirLen, y: dirY / dirLen };
           
           // Position tail cap slightly back along the path to overlap with the stroke
-          // This makes it blend seamlessly instead of looking disconnected
           const overlap = radius * 0.3; // Overlap with the path
           const tailCapX = tailX - (tailDir.x * overlap);
           const tailCapY = tailY - (tailDir.y * overlap);
@@ -2749,10 +2881,10 @@
           ctx.fill();
           ctx.restore();
         }
-      } else if (normalizedCenters.length === 1) {
+      } else if (tailSegment && tailSegment.length === 1) {
         // Single segment - just draw a circle at the tail
-        const tailX = normalizedCenters[0].x;
-        const tailY = normalizedCenters[0].y;
+        const tailX = tailSegment[0].x;
+        const tailY = tailSegment[0].y;
         ctx.save();
         ctx.fillStyle = '#9664ff';
         ctx.shadowColor = 'rgba(150, 100, 255, 0.3)';
@@ -2767,15 +2899,25 @@
       }
       
       // Draw head with top-down view
-      const headX = normalizedCenters[0].x;
-      const headY = normalizedCenters[0].y;
+      const headSegment = segments[0];
+      const headX = headSegment[0].x;
+      const headY = headSegment[0].y;
       const headRadius = radius;
       
       // Calculate head direction for tongue
       let headDir = { x: 1, y: 0 };
-      if (normalizedCenters.length > 1) {
-        const dirX = normalizedCenters[0].x - normalizedCenters[1].x;
-        const dirY = normalizedCenters[0].y - normalizedCenters[1].y;
+      if (headSegment.length > 1) {
+        const dirX = headSegment[0].x - headSegment[1].x;
+        const dirY = headSegment[0].y - headSegment[1].y;
+        const dirLen = Math.sqrt(dirX * dirX + dirY * dirY);
+        if (dirLen > 0) {
+          headDir = { x: dirX / dirLen, y: dirY / dirLen };
+        }
+      } else if (segments.length > 1 && segments[1].length > 0) {
+        // If head is a single segment, use direction to next segment
+        const nextSegment = segments[1];
+        const dirX = nextSegment[0].x - headSegment[0].x;
+        const dirY = nextSegment[0].y - headSegment[0].y;
         const dirLen = Math.sqrt(dirX * dirX + dirY * dirY);
         if (dirLen > 0) {
           headDir = { x: dirX / dirLen, y: dirY / dirLen };
