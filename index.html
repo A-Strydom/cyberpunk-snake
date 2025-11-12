@@ -1991,7 +1991,7 @@
     let direction = { x: 1, y: 0 };
     let nextDirection = { x: 1, y: 0 };
     let directionQueue = []; // Queue to capture rapid key presses
-    let food = [{ x: 4, y: 0 }]; // Array of food items - initial food at cell 4 in top row for immediate catch
+    let food = [{ x: 4, y: 0, type: null }]; // Array of food items - initial food at cell 4 in top row for immediate catch (type will be set in draw)
     let score = 10; // Snake starts with 1 segment = 10 points
     let highscore = parseInt(localStorage.getItem('snakeHighscore') || '0', 10) || 0;
     let gameRunning = false;
@@ -2277,12 +2277,27 @@
     window.addEventListener('touchstart', resumeAudioOnInteraction, { once: true, passive: true, capture: true });
     window.addEventListener('click', resumeAudioOnInteraction, { once: true, capture: true });
 
+    // Food types with different shapes and colors (same size)
+    const foodTypes = [
+      { shape: 'circle', size: 0.7, color: '#ffeb3b', glowColor: 'rgba(255, 235, 59, 0.8)' }, // Yellow circle
+      { shape: 'square', size: 0.7, color: '#ff6b35', glowColor: 'rgba(255, 107, 53, 0.8)' }, // Orange square
+      { shape: 'diamond', size: 0.7, color: '#00f5ff', glowColor: 'rgba(0, 245, 255, 0.8)' }, // Cyan diamond
+      { shape: 'star', size: 0.7, color: '#ff0040', glowColor: 'rgba(255, 0, 64, 0.8)' }, // Red star
+      { shape: 'triangle', size: 0.7, color: '#9664ff', glowColor: 'rgba(150, 100, 255, 0.8)' }, // Purple triangle
+      { shape: 'hexagon', size: 0.7, color: '#00ff88', glowColor: 'rgba(0, 255, 136, 0.8)' }, // Green hexagon
+      { shape: 'plus', size: 0.7, color: '#ffaa00', glowColor: 'rgba(255, 170, 0, 0.8)' }, // Orange plus
+      { shape: 'circle', size: 0.7, color: '#ff00ff', glowColor: 'rgba(255, 0, 255, 0.8)' }, // Magenta circle
+      { shape: 'square', size: 0.7, color: '#00ffff', glowColor: 'rgba(0, 255, 255, 0.8)' }, // Aqua square
+      { shape: 'diamond', size: 0.7, color: '#ffff00', glowColor: 'rgba(255, 255, 0, 0.8)' } // Yellow diamond
+    ];
+    
     function generateFood() {
       let newFood;
       do {
         newFood = {
           x: Math.floor(Math.random() * GRID_SIZE),
-          y: Math.floor(Math.random() * GRID_SIZE)
+          y: Math.floor(Math.random() * GRID_SIZE),
+          type: foodTypes[Math.floor(Math.random() * foodTypes.length)] // Random food type
         };
       } while (snake.some(segment => segment.x === newFood.x && segment.y === newFood.y) ||
                food.some(f => f.x === newFood.x && f.y === newFood.y));
@@ -2345,31 +2360,101 @@
         ctx.stroke();
       }
 
-      // Draw all food items with glow
+      // Draw all food items with different shapes, sizes, and colors
       if (!Array.isArray(food)) {
         // Safety check: ensure food is an array
-        food = [{ x: 4, y: 0 }];
+        food = [{ x: 4, y: 0, type: foodTypes[0] }];
       }
       for (const foodItem of food) {
         const foodX = foodItem.x * cellSize;
         const foodY = foodItem.y * cellSize;
+        const centerX = foodX + cellSize / 2;
+        const centerY = foodY + cellSize / 2;
+        
+        // Get food type (assign random type if not set, for backwards compatibility)
+        let foodType = foodItem.type;
+        if (!foodType) {
+          foodType = foodTypes[Math.floor(Math.random() * foodTypes.length)];
+          foodItem.type = foodType; // Cache it for next draw
+        }
+        const size = cellSize * foodType.size;
+        const halfSize = size / 2;
         
         // Outer glow
         const foodGradient = ctx.createRadialGradient(
-          foodX + cellSize / 2, foodY + cellSize / 2, 0,
-          foodX + cellSize / 2, foodY + cellSize / 2, cellSize / 2
+          centerX, centerY, 0,
+          centerX, centerY, cellSize / 2
         );
-        foodGradient.addColorStop(0, 'rgba(255, 235, 59, 0.8)');
-        foodGradient.addColorStop(0.5, 'rgba(255, 235, 59, 0.4)');
-        foodGradient.addColorStop(1, 'rgba(255, 235, 59, 0)');
+        foodGradient.addColorStop(0, foodType.glowColor);
+        foodGradient.addColorStop(0.5, foodType.glowColor.replace('0.8', '0.4'));
+        foodGradient.addColorStop(1, foodType.glowColor.replace('0.8', '0'));
         ctx.fillStyle = foodGradient;
         ctx.fillRect(foodX, foodY, cellSize, cellSize);
         
-        // Food square
-        ctx.fillStyle = '#ffeb3b';
-        ctx.shadowColor = '#ffeb3b';
+        // Draw food shape
+        ctx.fillStyle = foodType.color;
+        ctx.shadowColor = foodType.color;
         ctx.shadowBlur = 10;
-        ctx.fillRect(foodX + 2, foodY + 2, cellSize - 4, cellSize - 4);
+        ctx.beginPath();
+        
+        switch (foodType.shape) {
+          case 'circle':
+            ctx.arc(centerX, centerY, halfSize, 0, Math.PI * 2);
+            break;
+          case 'square':
+            ctx.fillRect(centerX - halfSize, centerY - halfSize, size, size);
+            break;
+          case 'diamond':
+            ctx.moveTo(centerX, centerY - halfSize);
+            ctx.lineTo(centerX + halfSize, centerY);
+            ctx.lineTo(centerX, centerY + halfSize);
+            ctx.lineTo(centerX - halfSize, centerY);
+            ctx.closePath();
+            break;
+          case 'star':
+            const starPoints = 5;
+            const outerRadius = halfSize;
+            const innerRadius = halfSize * 0.5;
+            for (let i = 0; i < starPoints * 2; i++) {
+              const angle = (Math.PI * i) / starPoints - Math.PI / 2;
+              const radius = i % 2 === 0 ? outerRadius : innerRadius;
+              const x = centerX + Math.cos(angle) * radius;
+              const y = centerY + Math.sin(angle) * radius;
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            break;
+          case 'triangle':
+            ctx.moveTo(centerX, centerY - halfSize);
+            ctx.lineTo(centerX + halfSize, centerY + halfSize);
+            ctx.lineTo(centerX - halfSize, centerY + halfSize);
+            ctx.closePath();
+            break;
+          case 'hexagon':
+            const hexPoints = 6;
+            for (let i = 0; i < hexPoints; i++) {
+              const angle = (Math.PI * 2 * i) / hexPoints - Math.PI / 2;
+              const x = centerX + Math.cos(angle) * halfSize;
+              const y = centerY + Math.sin(angle) * halfSize;
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            break;
+          case 'plus':
+            const plusWidth = halfSize * 0.3;
+            const plusLength = halfSize * 0.7;
+            // Horizontal bar
+            ctx.fillRect(centerX - plusLength, centerY - plusWidth, plusLength * 2, plusWidth * 2);
+            // Vertical bar
+            ctx.fillRect(centerX - plusWidth, centerY - plusLength, plusWidth * 2, plusLength * 2);
+            break;
+        }
+        
+        if (foodType.shape !== 'square' && foodType.shape !== 'plus') {
+          ctx.fill();
+        }
       }
       // Reset shadow after food
       ctx.shadowColor = 'transparent';
@@ -3406,7 +3491,7 @@
             lastMoveTime = 0;
             
             // Set initial food position (cell 4, top row) for immediate catch
-            food = [{ x: 4, y: 0 }];
+            food = [{ x: 4, y: 0, type: null }];
             
             // Hide game over screen and show start button (don't auto-start)
             hideGameOver();
