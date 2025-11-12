@@ -2199,6 +2199,20 @@
         }, 30);
       },
       
+      playInvalidMove() {
+        // Low, short error sound for invalid moves
+        if (!this.enabled || !this.audioContext) return;
+        
+        // Mark user interaction if not already marked (for error sounds)
+        if (!this.hasUserInteracted) {
+          this.hasUserInteracted = true;
+        }
+        
+        this.ensureResumed().catch(() => {});
+        // Use a slightly longer duration for better feedback
+        this.playTone(100, 0.2, 'sawtooth', 0.15);
+      },
+      
       playGameOver() {
         // Non-blocking sound
         this.ensureResumed().catch(() => {});
@@ -3068,23 +3082,40 @@
 
     function changeDirection(newDir) {
       // Don't auto-start on direction change - user must press start button
-      if (!gameRunning || gameOver || gamePaused) return;
+      if (!gameRunning || gameOver || gamePaused) {
+        SoundManager.playInvalidMove();
+        return;
+      }
       
       // Don't allow manual direction changes when autodrive is active
-      if (autodriveActive) return;
+      if (autodriveActive) {
+        SoundManager.playInvalidMove();
+        return;
+      }
       
       // Determine what direction to check against
+      // Use the actual current direction (where snake is moving now)
+      const currentDir = direction;
+      
+      // Prevent reversing into itself (backwards)
+      if (newDir.x === -currentDir.x && newDir.y === -currentDir.y) {
+        SoundManager.playInvalidMove();
+        return;
+      }
+      
+      // Prevent moving in the same direction (snake can't move into itself)
+      if (newDir.x === currentDir.x && newDir.y === currentDir.y) {
+        SoundManager.playInvalidMove();
+        return;
+      }
+      
+      // Determine what direction to check against for queue
       // Use the last queued direction if queue exists, otherwise use nextDirection
       const checkDir = directionQueue.length > 0 
         ? directionQueue[directionQueue.length - 1] 
         : nextDirection;
       
-      // Prevent reversing into itself
-      if (newDir.x === -checkDir.x && newDir.y === -checkDir.y) {
-        return;
-      }
-      
-      // Check if direction is actually changing (not the same as current)
+      // Check if direction is actually changing (not the same as queued)
       const isDirectionChanging = newDir.x !== checkDir.x || newDir.y !== checkDir.y;
       
       // Add to queue to capture rapid key presses
