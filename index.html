@@ -2031,6 +2031,8 @@
     let autodriveSpeed = 1.0;
     let tongueAnimation = 0; // 0 to 1, cycles for tongue animation
     let scalePattern = null; // Cached scale pattern for performance
+    let eyeBlinkState = 0; // 0 = open, 1 = fully closed, animates between
+    let nextBlinkTime = 0; // When the next blink should start
 
     // Responsive canvas sizing
     function getCanvasSize() {
@@ -2789,38 +2791,80 @@
       ctx.fill();
       
       // Draw eyes (top-down view - snake eyes, elliptical/oval, vertical)
-      ctx.fillStyle = '#ffffff'; // Yellow eyes
+      ctx.fillStyle = '#ffffff'; // White eyes
       ctx.shadowBlur = 0;
       const eyeWidth = headRadius * 0.25; // Horizontal radius (narrower)
       const eyeHeight = headRadius * 0.4; // Vertical radius (taller, vertical snake eyes)
       const eyeOffsetX = headRadius * 0.35;
       const eyeOffsetY = -headRadius * 0.2;
       
-      // Left eye (elliptical, vertical)
-      ctx.beginPath();
-      ctx.ellipse(headX - eyeOffsetX, headY + eyeOffsetY, eyeWidth, eyeHeight, 0, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Right eye (elliptical, vertical)
-      ctx.beginPath();
-      ctx.ellipse(headX + eyeOffsetX, headY + eyeOffsetY, eyeWidth, eyeHeight, 0, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Draw pupils (black, vertical slit-like)
-      ctx.fillStyle = '#000000';
-      const pupilWidth = eyeWidth * 0.5;
-      const pupilHeight = eyeHeight * 0.6;
-      ctx.beginPath();
-      ctx.ellipse(headX - eyeOffsetX, headY + eyeOffsetY, pupilWidth, pupilHeight, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(headX + eyeOffsetX, headY + eyeOffsetY, pupilWidth, pupilHeight, 0, 0, Math.PI * 2);
-      ctx.fill();
+      // Draw eyes with blinking animation
+      if (eyeBlinkState > 0) {
+        // Eyes are blinking - draw as horizontal lines (closed)
+        const closedHeight = eyeHeight * (1 - eyeBlinkState); // Animate from full height to 0
+        ctx.fillStyle = '#ffffff';
+        // Left eye (closed - horizontal line)
+        ctx.fillRect(headX - eyeOffsetX - eyeWidth, headY + eyeOffsetY - closedHeight / 2, eyeWidth * 2, closedHeight);
+        // Right eye (closed - horizontal line)
+        ctx.fillRect(headX + eyeOffsetX - eyeWidth, headY + eyeOffsetY - closedHeight / 2, eyeWidth * 2, closedHeight);
+      } else {
+        // Eyes are open - draw normally
+        // Left eye (elliptical, vertical)
+        ctx.beginPath();
+        ctx.ellipse(headX - eyeOffsetX, headY + eyeOffsetY, eyeWidth, eyeHeight, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Right eye (elliptical, vertical)
+        ctx.beginPath();
+        ctx.ellipse(headX + eyeOffsetX, headY + eyeOffsetY, eyeWidth, eyeHeight, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw pupils (black, vertical slit-like) - only when eyes are open
+        ctx.fillStyle = '#000000';
+        const pupilWidth = eyeWidth * 0.5;
+        const pupilHeight = eyeHeight * 0.6;
+        ctx.beginPath();
+        ctx.ellipse(headX - eyeOffsetX, headY + eyeOffsetY, pupilWidth, pupilHeight, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(headX + eyeOffsetX, headY + eyeOffsetY, pupilWidth, pupilHeight, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
       
       // Animate tongue (appears and disappears completely)
       tongueAnimation += 0.02; // Slower animation
       if (tongueAnimation > Math.PI * 2) {
         tongueAnimation = 0;
+      }
+      
+      // Animate eye blinking
+      const currentTime = performance.now();
+      if (nextBlinkTime === 0) {
+        // Initialize first blink time (random between 2-5 seconds from now)
+        nextBlinkTime = currentTime + 2000 + Math.random() * 3000;
+      }
+      
+      if (currentTime >= nextBlinkTime) {
+        // Start blinking
+        const blinkDuration = 150; // Blink lasts 150ms
+        const timeSinceBlinkStart = currentTime - nextBlinkTime;
+        
+        if (timeSinceBlinkStart < blinkDuration) {
+          // Animate blink (smooth close and open)
+          const blinkProgress = timeSinceBlinkStart / blinkDuration;
+          // Use a smooth curve: close quickly, open quickly
+          if (blinkProgress < 0.5) {
+            // Closing (0 to 1)
+            eyeBlinkState = blinkProgress * 2;
+          } else {
+            // Opening (1 to 0)
+            eyeBlinkState = 2 - (blinkProgress * 2);
+          }
+        } else {
+          // Blink finished, schedule next one
+          eyeBlinkState = 0;
+          nextBlinkTime = currentTime + 2000 + Math.random() * 3000; // Next blink in 2-5 seconds
+        }
       }
       
       // Tongue only shows when sin is positive (about half the time)
@@ -3003,6 +3047,8 @@
       currentSpeed = INITIAL_SPEED;
       lastMoveTime = 0;
       autodriveActive = false; // Reset autodrive on new game
+      eyeBlinkState = 0; // Reset blink state
+      nextBlinkTime = 0; // Reset blink timer
       
       // Reset musical sequence for a fresh start
       SoundManager.resetSequence();
