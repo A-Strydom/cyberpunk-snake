@@ -2303,10 +2303,20 @@
     function moveSnake() {
       if (!gameRunning || gameOver || gamePaused) return;
 
-      // Process direction queue - use the first queued direction if available
-      // This ensures rapid key presses are all processed in order
+      // Process direction queue - but prioritize immediate responsiveness
+      // Since nextDirection is updated immediately in changeDirection, we only process
+      // the queue if it contains directions that haven't been applied yet
+      // This ensures direction changes apply on the very next move, even when eating food
       if (directionQueue.length > 0) {
-        nextDirection = directionQueue.shift();
+        // Check if the first queued direction matches current nextDirection
+        // If it does, it was already applied, so just remove it
+        const firstQueued = directionQueue[0];
+        if (firstQueued.x === nextDirection.x && firstQueued.y === nextDirection.y) {
+          directionQueue.shift();
+        } else {
+          // If different, apply the queued direction (for rapid key presses)
+          nextDirection = directionQueue.shift();
+        }
       }
       
       // Update direction from nextDirection
@@ -2941,11 +2951,9 @@
       );
       directionQueue.push(newDir);
       
-      // Update nextDirection if queue was empty (for immediate responsiveness)
-      // Otherwise, the queue will be processed in moveSnake
-      if (directionQueue.length === 1) {
-        nextDirection = newDir;
-      }
+      // Always update nextDirection to the most recent direction for immediate responsiveness
+      // This ensures direction changes apply on the next move, even when eating food
+      nextDirection = newDir;
       
       // Play super short cyber beep when direction actually changes
       if (isDirectionChanging) {
