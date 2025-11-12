@@ -969,6 +969,54 @@
     #controlModeModal.show {
       display: flex;
     }
+    #hamiltonianPathModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(5px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      animation: fadeIn 0.3s ease;
+    }
+    #hamiltonianPathModal.show {
+      display: flex;
+    }
+    #closeHamiltonianPath {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: transparent;
+      border: 1px solid #00f5ff;
+      color: #00f5ff;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 20px;
+      width: 35px;
+      height: 35px;
+      cursor: pointer;
+      text-shadow: 0 0 8px #00f5ff;
+      box-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
+      transition: all 0.2s ease;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #closeHamiltonianPath:hover {
+      background: rgba(0, 245, 255, 0.1);
+      border-color: #ff0040;
+      color: #ff0040;
+      box-shadow: 0 0 15px rgba(255, 0, 64, 0.5);
+      text-shadow: 0 0 10px #ff0040;
+    }
+    #hamiltonianPathCanvas {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
     #closeControlMode {
       position: absolute;
       top: 15px;
@@ -1849,6 +1897,7 @@
           <div class="menu-dropdown" id="menuDropdown">
             <button id="clearHighScoreBtn" title="Clear High Score"><span class="material-icons">do_not_disturb</span> CLEAR HIGH SCORE</button>
             <button id="controlModeBtn" title="Control Mode"><span class="material-icons">gamepad</span> CONTROL MODE</button>
+            <button id="hamiltonianPathBtn" title="Configure Hamiltonian Path"><span class="material-icons">route</span> HAMILTONIAN PATH</button>
             <button id="helpBtn" title="How to Play"><span class="material-icons">help</span> HELP</button>
           </div>
         </div>
@@ -1943,6 +1992,40 @@
         <p style="margin-top: 8px; font-size: 12px; opacity: 0.8; color: #ff6b35; text-shadow: 0 0 4px rgba(255, 107, 53, 0.3); padding-left: 4px;">
           Reset all control positions to their default locations.
         </p>
+      </div>
+    </div>
+  </div>
+  <div id="hamiltonianPathModal">
+    <div class="help-content" style="max-width: 90vw; max-height: 90vh; overflow: auto;">
+      <button id="closeHamiltonianPath" title="Close">×</button>
+      <h2>CONFIGURE HAMILTONIAN PATH</h2>
+      <div style="margin: 20px 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+          <div style="flex: 1; min-width: 200px;">
+            <div style="color: #00f5ff; font-size: 14px; margin-bottom: 5px;">Step: <strong id="hamiltonianStep">0</strong> / <strong id="hamiltonianTotal">400</strong></div>
+            <div style="color: #ff6b35; font-size: 14px;">Remaining: <strong id="hamiltonianRemaining">400</strong> cells</div>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button id="clearHamiltonianPath" class="confirm-btn" style="background: #ff0040;">CLEAR</button>
+            <button id="importHamiltonianPath" class="confirm-btn" style="background: #ff6b35;">IMPORT</button>
+            <button id="exportHamiltonianPath" class="confirm-btn" style="background: #00f5ff; color: #000;">EXPORT</button>
+            <button id="saveHamiltonianPath" class="confirm-btn" style="background: #00ff00; color: #000;">SAVE</button>
+          </div>
+        </div>
+        <div style="position: relative; border: 2px solid #00f5ff; border-radius: 6px; background: rgba(10, 10, 30, 0.9); padding: 10px; box-shadow: 0 0 20px rgba(0, 245, 255, 0.3);">
+          <canvas id="hamiltonianPathCanvas" style="display: block; width: 100%; max-width: 600px; margin: 0 auto; cursor: crosshair;"></canvas>
+          <input type="file" id="hamiltonianPathFileInput" accept=".json" style="display: none;">
+        </div>
+        <div id="hamiltonianPathStatus" style="margin-top: 15px; padding: 10px; border-radius: 6px; font-size: 14px; text-align: center;"></div>
+        <div style="margin-top: 15px; font-size: 12px; color: #00f5ff; opacity: 0.8;">
+          <p><strong>Instructions:</strong></p>
+          <ul style="margin: 10px 0; padding-left: 20px;">
+            <li>Click and drag to draw the path</li>
+            <li>Path must start and end at the top-left corner (0, 0)</li>
+            <li>All cells must be visited exactly once</li>
+            <li>Path must be continuous (adjacent cells only)</li>
+          </ul>
+        </div>
       </div>
     </div>
   </div>
@@ -3361,6 +3444,7 @@
     // Pre-computed Hamiltonian path that visits every cell exactly once
     // Pattern matches spreadsheet: Row 1 A→T, Row 2 T→B, Row 3 B→T, etc., then up column A
     let hamiltonianPath = null;
+    let customHamiltonianPath = null; // User-configured custom path
     
     function generateHamiltonianPath() {
       const path = [];
@@ -3441,12 +3525,10 @@
     }
     
     // Get the index of a cell in the Hamiltonian path
-    function getPathIndex(x, y) {
-      if (!hamiltonianPath) {
-        hamiltonianPath = generateHamiltonianPath();
-      }
-      for (let i = 0; i < hamiltonianPath.length; i++) {
-        if (hamiltonianPath[i].x === x && hamiltonianPath[i].y === y) {
+    function getPathIndex(x, y, pathToUse = null) {
+      const path = pathToUse || customHamiltonianPath || (hamiltonianPath || generateHamiltonianPath());
+      for (let i = 0; i < path.length; i++) {
+        if (path[i].x === x && path[i].y === y) {
           return i;
         }
       }
@@ -3455,14 +3537,17 @@
     
     // Get the next cell in the path from current position
     function getNextInPath(x, y) {
-      if (!hamiltonianPath) {
-        hamiltonianPath = generateHamiltonianPath();
-      }
-      const currentIndex = getPathIndex(x, y);
-      if (currentIndex === -1 || currentIndex >= hamiltonianPath.length - 1) {
+      // Use custom path if available, otherwise use default
+      const pathToUse = customHamiltonianPath || (hamiltonianPath || generateHamiltonianPath());
+      const currentIndex = getPathIndex(x, y, pathToUse);
+      if (currentIndex === -1 || currentIndex >= pathToUse.length - 1) {
+        // If at end of path and it's a cycle, wrap to beginning
+        if (currentIndex === pathToUse.length - 1 && pathToUse[0].x === 0 && pathToUse[0].y === 0) {
+          return pathToUse[0];
+        }
         return null; // At end of path
       }
-      return hamiltonianPath[currentIndex + 1];
+      return pathToUse[currentIndex + 1];
     }
     
     // AI Pathfinding for Autodrive - Simple Hamiltonian path following
@@ -5012,6 +5097,516 @@
       controlModeSelect.addEventListener('change', (e) => {
         setControlMode(e.target.value);
       });
+    }
+
+    // Hamiltonian Path Configuration
+    const hamiltonianPathBtn = document.getElementById('hamiltonianPathBtn');
+    const hamiltonianPathModal = document.getElementById('hamiltonianPathModal');
+    const closeHamiltonianPath = document.getElementById('closeHamiltonianPath');
+    const hamiltonianPathCanvas = document.getElementById('hamiltonianPathCanvas');
+    const clearHamiltonianPath = document.getElementById('clearHamiltonianPath');
+    const importHamiltonianPath = document.getElementById('importHamiltonianPath');
+    const exportHamiltonianPath = document.getElementById('exportHamiltonianPath');
+    const saveHamiltonianPath = document.getElementById('saveHamiltonianPath');
+    const hamiltonianPathFileInput = document.getElementById('hamiltonianPathFileInput');
+    const hamiltonianStep = document.getElementById('hamiltonianStep');
+    const hamiltonianTotal = document.getElementById('hamiltonianTotal');
+    const hamiltonianRemaining = document.getElementById('hamiltonianRemaining');
+    const hamiltonianPathStatus = document.getElementById('hamiltonianPathStatus');
+    
+    let currentPath = []; // Current path being drawn
+    let isDrawing = false;
+    let lastCell = null;
+    let canvasCtx = null;
+    let canvasCellSize = 0;
+    
+    function initHamiltonianCanvas() {
+      if (!hamiltonianPathCanvas) return;
+      
+      const container = hamiltonianPathCanvas.parentElement;
+      const maxSize = Math.min(600, window.innerWidth - 100);
+      const cellSize = Math.floor(maxSize / GRID_SIZE);
+      const canvasSize = cellSize * GRID_SIZE;
+      
+      hamiltonianPathCanvas.width = canvasSize;
+      hamiltonianPathCanvas.height = canvasSize;
+      hamiltonianPathCanvas.style.width = canvasSize + 'px';
+      hamiltonianPathCanvas.style.height = canvasSize + 'px';
+      
+      canvasCtx = hamiltonianPathCanvas.getContext('2d');
+      canvasCellSize = cellSize;
+      
+      drawHamiltonianCanvas();
+    }
+    
+    function drawHamiltonianCanvas() {
+      if (!canvasCtx || !hamiltonianPathCanvas) return;
+      
+      const ctx = canvasCtx;
+      const cellSize = canvasCellSize;
+      
+      // Clear canvas
+      ctx.fillStyle = 'rgba(10, 10, 30, 1)';
+      ctx.fillRect(0, 0, hamiltonianPathCanvas.width, hamiltonianPathCanvas.height);
+      
+      // Draw grid
+      ctx.strokeStyle = 'rgba(0, 245, 255, 0.2)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= GRID_SIZE; i++) {
+        const pos = i * cellSize;
+        ctx.beginPath();
+        ctx.moveTo(pos, 0);
+        ctx.lineTo(pos, GRID_SIZE * cellSize);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, pos);
+        ctx.lineTo(GRID_SIZE * cellSize, pos);
+        ctx.stroke();
+      }
+      
+      // Draw visited cells
+      const visited = new Set();
+      currentPath.forEach((cell, index) => {
+        const key = `${cell.x},${cell.y}`;
+        if (visited.has(key)) {
+          // Duplicate - highlight in red
+          ctx.fillStyle = 'rgba(255, 0, 64, 0.5)';
+        } else {
+          visited.add(key);
+          // Normal visited cell
+          const alpha = 0.3 + (index / currentPath.length) * 0.4;
+          ctx.fillStyle = `rgba(0, 245, 255, ${alpha})`;
+        }
+        ctx.fillRect(cell.x * cellSize, cell.y * cellSize, cellSize, cellSize);
+      });
+      
+      // Draw path lines
+      if (currentPath.length > 1) {
+        ctx.strokeStyle = '#00f5ff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(
+          currentPath[0].x * cellSize + cellSize / 2,
+          currentPath[0].y * cellSize + cellSize / 2
+        );
+        for (let i = 1; i < currentPath.length; i++) {
+          ctx.lineTo(
+            currentPath[i].x * cellSize + cellSize / 2,
+            currentPath[i].y * cellSize + cellSize / 2
+          );
+        }
+        ctx.stroke();
+      }
+      
+      // Highlight start cell (0, 0)
+      ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
+      ctx.fillRect(0, 0, cellSize, cellSize);
+      ctx.strokeStyle = '#00ff00';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(0, 0, cellSize, cellSize);
+      
+      // Highlight current cell
+      if (lastCell) {
+        ctx.fillStyle = 'rgba(255, 107, 53, 0.5)';
+        ctx.fillRect(lastCell.x * cellSize, lastCell.y * cellSize, cellSize, cellSize);
+      }
+      
+      // Update stats
+      const totalCells = GRID_SIZE * GRID_SIZE;
+      const uniqueVisited = new Set();
+      currentPath.forEach(c => uniqueVisited.add(`${c.x},${c.y}`));
+      const remaining = totalCells - uniqueVisited.size;
+      if (hamiltonianStep) hamiltonianStep.textContent = currentPath.length;
+      if (hamiltonianTotal) hamiltonianTotal.textContent = totalCells + 1; // Show expected total (400 + return to start)
+      if (hamiltonianRemaining) hamiltonianRemaining.textContent = remaining;
+      
+      // Update status
+      updateHamiltonianStatus();
+    }
+    
+    function updateHamiltonianStatus() {
+      if (!hamiltonianPathStatus) return;
+      
+      const visited = new Set();
+      const duplicates = [];
+      currentPath.forEach((cell, index) => {
+        const key = `${cell.x},${cell.y}`;
+        if (visited.has(key)) {
+          duplicates.push({ cell, index });
+        }
+        visited.add(key);
+      });
+      
+      const totalCells = GRID_SIZE * GRID_SIZE;
+      const remaining = totalCells - visited.size;
+      const isValid = validateHamiltonianPath();
+      
+      if (currentPath.length === 0) {
+        hamiltonianPathStatus.textContent = 'Click and drag to start drawing the path';
+        hamiltonianPathStatus.style.background = 'rgba(0, 245, 255, 0.2)';
+        hamiltonianPathStatus.style.color = '#00f5ff';
+      } else if (duplicates.length > 0) {
+        hamiltonianPathStatus.textContent = `⚠️ Duplicate cells detected! Path has ${duplicates.length} duplicate(s)`;
+        hamiltonianPathStatus.style.background = 'rgba(255, 0, 64, 0.3)';
+        hamiltonianPathStatus.style.color = '#ff0040';
+      } else if (!isValid.continuous) {
+        hamiltonianPathStatus.textContent = '⚠️ Path is not continuous (all cells must be adjacent)';
+        hamiltonianPathStatus.style.background = 'rgba(255, 107, 53, 0.3)';
+        hamiltonianPathStatus.style.color = '#ff6b35';
+      } else if (remaining > 0) {
+        hamiltonianPathStatus.textContent = `Drawing... ${remaining} unique cells remaining. Return to (0,0) to complete the cycle.`;
+        hamiltonianPathStatus.style.background = 'rgba(255, 107, 53, 0.2)';
+        hamiltonianPathStatus.style.color = '#ff6b35';
+      } else if (remaining === 0 && currentPath.length === totalCells) {
+        // All unique cells visited, but haven't returned to start yet
+        hamiltonianPathStatus.textContent = 'All cells visited! Return to (0,0) to complete the cycle.';
+        hamiltonianPathStatus.style.background = 'rgba(255, 255, 0, 0.2)';
+        hamiltonianPathStatus.style.color = '#ffeb3b';
+      } else if (isValid.valid) {
+        hamiltonianPathStatus.textContent = '✅ Valid Hamiltonian path! Click SAVE to use it.';
+        hamiltonianPathStatus.style.background = 'rgba(0, 255, 0, 0.3)';
+        hamiltonianPathStatus.style.color = '#00ff00';
+      } else {
+        hamiltonianPathStatus.textContent = isValid.error || 'Path incomplete';
+        hamiltonianPathStatus.style.background = 'rgba(255, 107, 53, 0.3)';
+        hamiltonianPathStatus.style.color = '#ff6b35';
+      }
+    }
+    
+    function validateHamiltonianPath() {
+      if (currentPath.length === 0) {
+        return { valid: false, error: 'Path is empty', continuous: true };
+      }
+      
+      // Check starts at (0, 0)
+      if (currentPath[0].x !== 0 || currentPath[0].y !== 0) {
+        return { valid: false, error: 'Path must start at top-left corner (0, 0)', continuous: true };
+      }
+      
+      // Check ends at (0, 0) - but allow it to be the same as start for cycle
+      const last = currentPath[currentPath.length - 1];
+      if (last.x !== 0 || last.y !== 0) {
+        return { valid: false, error: 'Path must end at top-left corner (0, 0) to complete the cycle', continuous: true };
+      }
+      
+      // For a cycle, the last cell is the same as the first, so we need exactly GRID_SIZE * GRID_SIZE cells
+      // (not GRID_SIZE * GRID_SIZE + 1, because the cycle completion is implicit)
+      
+      // Check all cells are visited
+      const totalCells = GRID_SIZE * GRID_SIZE;
+      // For a Hamiltonian cycle, the path should have exactly totalCells + 1 entries
+      // (400 unique cells + return to start at (0,0) = 401 total)
+      const expectedLength = totalCells + 1;
+      if (currentPath.length !== expectedLength) {
+        return { valid: false, error: `Path has ${currentPath.length} cells, but needs exactly ${expectedLength} (${totalCells} unique cells + return to start)`, continuous: true };
+      }
+      
+      // Check all cells visited exactly once (except (0,0) which appears at start and end for the cycle)
+      const visited = new Map(); // Use Map to count occurrences
+      currentPath.forEach((cell, index) => {
+        const key = `${cell.x},${cell.y}`;
+        visited.set(key, (visited.get(key) || 0) + 1);
+      });
+      
+      // Check for duplicates (only (0,0) should appear twice, and only at start and end)
+      const duplicates = [];
+      visited.forEach((count, key) => {
+        if (count > 1) {
+          // Allow (0,0) to appear twice only if it's at start and end
+          if (key !== '0,0' || count !== 2 || 
+              currentPath[0].x !== 0 || currentPath[0].y !== 0 ||
+              currentPath[currentPath.length - 1].x !== 0 || currentPath[currentPath.length - 1].y !== 0) {
+            duplicates.push(key);
+          }
+        }
+      });
+      
+      if (duplicates.length > 0) {
+        return { valid: false, error: `Path has duplicate cell(s): ${duplicates.join(', ')}`, continuous: true };
+      }
+      
+      // All unique cells should be visited (visited.size should equal totalCells, since (0,0) appears twice but Set only stores it once)
+      // Actually, if (0,0) appears twice, the Set size will be totalCells (all unique cells including (0,0) once)
+      // But we need to verify all cells are present
+      const uniqueCells = new Set();
+      currentPath.forEach(cell => uniqueCells.add(`${cell.x},${cell.y}`));
+      if (uniqueCells.size !== totalCells) {
+        return { valid: false, error: `Only ${uniqueCells.size} of ${totalCells} unique cells visited`, continuous: true };
+      }
+      
+      // Check path is continuous
+      for (let i = 0; i < currentPath.length - 1; i++) {
+        const curr = currentPath[i];
+        const next = currentPath[i + 1];
+        const dx = Math.abs(curr.x - next.x);
+        const dy = Math.abs(curr.y - next.y);
+        if (dx + dy !== 1) {
+          return { valid: false, error: 'Path is not continuous', continuous: false };
+        }
+      }
+      
+      return { valid: true, error: null, continuous: true };
+    }
+    
+    function getCellFromPoint(x, y) {
+      if (!hamiltonianPathCanvas) return null;
+      const rect = hamiltonianPathCanvas.getBoundingClientRect();
+      const canvasX = x - rect.left;
+      const canvasY = y - rect.top;
+      const cellX = Math.floor(canvasX / canvasCellSize);
+      const cellY = Math.floor(canvasY / canvasCellSize);
+      
+      if (cellX >= 0 && cellX < GRID_SIZE && cellY >= 0 && cellY < GRID_SIZE) {
+        return { x: cellX, y: cellY };
+      }
+      return null;
+    }
+    
+    function addCellToPath(cell) {
+      if (!cell) return;
+      
+      // If path is empty, must start at (0, 0)
+      if (currentPath.length === 0) {
+        if (cell.x !== 0 || cell.y !== 0) {
+          currentPath.push({ x: 0, y: 0 });
+        }
+      }
+      
+      // Check if this cell is already in path
+      const exists = currentPath.some(c => c.x === cell.x && c.y === cell.y);
+      if (exists) {
+        // Allow returning to (0,0) to complete the cycle if we've visited all unique cells
+        const totalCells = GRID_SIZE * GRID_SIZE;
+        const uniqueCells = new Set();
+        currentPath.forEach(c => uniqueCells.add(`${c.x},${c.y}`));
+        
+        // Check if we've visited all unique cells (400) and trying to return to (0,0)
+        if (cell.x === 0 && cell.y === 0 && 
+            uniqueCells.size === totalCells &&
+            currentPath[0].x === 0 && currentPath[0].y === 0) {
+          // Completing the cycle - add the final (0,0)
+          currentPath.push(cell);
+          lastCell = cell;
+          drawHamiltonianCanvas();
+          return;
+        }
+        // Otherwise, don't add duplicates
+        return;
+      }
+      
+      // Check if cell is adjacent to last cell
+      if (currentPath.length > 0) {
+        const last = currentPath[currentPath.length - 1];
+        const dx = Math.abs(last.x - cell.x);
+        const dy = Math.abs(last.y - cell.y);
+        if (dx + dy !== 1) {
+          // Not adjacent - skip non-adjacent cells
+          // Exception: if we're trying to complete the cycle by returning to (0,0),
+          // check if we've visited all cells first
+          const totalCells = GRID_SIZE * GRID_SIZE;
+          const uniqueCells = new Set();
+          currentPath.forEach(c => uniqueCells.add(`${c.x},${c.y}`));
+          if (cell.x === 0 && cell.y === 0 && uniqueCells.size === totalCells) {
+            // Allow completing the cycle even if not strictly adjacent (handles edge cases)
+            // But first check if last cell is actually adjacent to (0,0)
+            const lastDx = Math.abs(last.x - 0);
+            const lastDy = Math.abs(last.y - 0);
+            if (lastDx + lastDy === 1) {
+              // Adjacent, proceed to add
+            } else {
+              // Not adjacent, can't complete cycle from here
+              return;
+            }
+          } else {
+            return;
+          }
+        }
+      }
+      
+      currentPath.push(cell);
+      lastCell = cell;
+      drawHamiltonianCanvas();
+    }
+    
+    // Event handlers
+    if (hamiltonianPathBtn && hamiltonianPathModal) {
+      hamiltonianPathBtn.addEventListener('click', () => {
+        hamiltonianPathModal.classList.add('show');
+        if (menuDropdown) menuDropdown.classList.remove('show');
+        // Load saved path if exists
+        const saved = localStorage.getItem('customHamiltonianPath');
+        if (saved) {
+          try {
+            currentPath = JSON.parse(saved);
+            lastCell = currentPath.length > 0 ? currentPath[currentPath.length - 1] : null;
+          } catch (e) {
+            currentPath = [];
+            lastCell = null;
+          }
+        } else {
+          currentPath = [];
+          lastCell = null;
+        }
+        setTimeout(() => {
+          initHamiltonianCanvas();
+        }, 100);
+      });
+    }
+    
+    if (closeHamiltonianPath && hamiltonianPathModal) {
+      closeHamiltonianPath.addEventListener('click', () => {
+        hamiltonianPathModal.classList.remove('show');
+      });
+    }
+    
+    if (hamiltonianPathModal) {
+      hamiltonianPathModal.addEventListener('click', (e) => {
+        if (e.target === hamiltonianPathModal) {
+          hamiltonianPathModal.classList.remove('show');
+        }
+      });
+    }
+    
+    // Canvas drawing
+    if (hamiltonianPathCanvas) {
+      hamiltonianPathCanvas.addEventListener('mousedown', (e) => {
+        isDrawing = true;
+        const cell = getCellFromPoint(e.clientX, e.clientY);
+        if (cell) {
+          addCellToPath(cell);
+        }
+      });
+      
+      hamiltonianPathCanvas.addEventListener('mousemove', (e) => {
+        if (isDrawing) {
+          const cell = getCellFromPoint(e.clientX, e.clientY);
+          if (cell && (!lastCell || cell.x !== lastCell.x || cell.y !== lastCell.y)) {
+            addCellToPath(cell);
+          }
+        }
+      });
+      
+      hamiltonianPathCanvas.addEventListener('mouseup', () => {
+        isDrawing = false;
+      });
+      
+      hamiltonianPathCanvas.addEventListener('mouseleave', () => {
+        isDrawing = false;
+      });
+      
+      // Touch events
+      hamiltonianPathCanvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        isDrawing = true;
+        const touch = e.touches[0];
+        const cell = getCellFromPoint(touch.clientX, touch.clientY);
+        if (cell) {
+          addCellToPath(cell);
+        }
+      });
+      
+      hamiltonianPathCanvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (isDrawing) {
+          const touch = e.touches[0];
+          const cell = getCellFromPoint(touch.clientX, touch.clientY);
+          if (cell && (!lastCell || cell.x !== lastCell.x || cell.y !== lastCell.y)) {
+            addCellToPath(cell);
+          }
+        }
+      });
+      
+      hamiltonianPathCanvas.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        isDrawing = false;
+      });
+    }
+    
+    // Clear button
+    if (clearHamiltonianPath) {
+      clearHamiltonianPath.addEventListener('click', () => {
+        currentPath = [];
+        lastCell = null;
+        drawHamiltonianCanvas();
+      });
+    }
+    
+    // Save button
+    if (saveHamiltonianPath) {
+      saveHamiltonianPath.addEventListener('click', () => {
+        const validation = validateHamiltonianPath();
+        if (validation.valid) {
+          customHamiltonianPath = [...currentPath];
+          localStorage.setItem('customHamiltonianPath', JSON.stringify(customHamiltonianPath));
+          hamiltonianPath = null; // Reset default path so custom is used
+          hamiltonianPathStatus.textContent = '✅ Path saved! It will be used in autodrive mode.';
+          hamiltonianPathStatus.style.background = 'rgba(0, 255, 0, 0.3)';
+          hamiltonianPathStatus.style.color = '#00ff00';
+        } else {
+          alert('Cannot save: ' + (validation.error || 'Path is invalid'));
+        }
+      });
+    }
+    
+    // Export button
+    if (exportHamiltonianPath) {
+      exportHamiltonianPath.addEventListener('click', () => {
+        if (currentPath.length === 0) {
+          alert('No path to export');
+          return;
+        }
+        const dataStr = JSON.stringify(currentPath, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'hamiltonian-path.json';
+        link.click();
+        URL.revokeObjectURL(url);
+      });
+    }
+    
+    // Import button
+    if (importHamiltonianPath && hamiltonianPathFileInput) {
+      importHamiltonianPath.addEventListener('click', () => {
+        hamiltonianPathFileInput.click();
+      });
+      
+      hamiltonianPathFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const imported = JSON.parse(event.target.result);
+            if (Array.isArray(imported) && imported.length > 0) {
+              currentPath = imported;
+              lastCell = currentPath.length > 0 ? currentPath[currentPath.length - 1] : null;
+              drawHamiltonianCanvas();
+              hamiltonianPathStatus.textContent = 'Path imported. Validate and save to use it.';
+              hamiltonianPathStatus.style.background = 'rgba(0, 245, 255, 0.2)';
+              hamiltonianPathStatus.style.color = '#00f5ff';
+            } else {
+              alert('Invalid file format');
+            }
+          } catch (error) {
+            alert('Error reading file: ' + error.message);
+          }
+        };
+        reader.readAsText(file);
+        e.target.value = ''; // Reset input
+      });
+    }
+    
+    // Load custom path on startup
+    const savedPath = localStorage.getItem('customHamiltonianPath');
+    if (savedPath) {
+      try {
+        customHamiltonianPath = JSON.parse(savedPath);
+      } catch (e) {
+        customHamiltonianPath = null;
+      }
     }
 
     // Reset control positions button
