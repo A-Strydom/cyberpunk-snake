@@ -2006,6 +2006,8 @@
             <div style="color: #ff6b35; font-size: 14px;">Remaining: <strong id="hamiltonianRemaining">400</strong> cells</div>
           </div>
           <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button id="undoHamiltonianPath" class="confirm-btn" style="background: #9664ff;" title="Undo (Ctrl+Z / Cmd+Z)">UNDO</button>
+            <button id="redohamiltonianPath" class="confirm-btn" style="background: #9664ff;" title="Redo (Ctrl+Shift+Z / Cmd+Shift+Z)">REDO</button>
             <button id="clearHamiltonianPath" class="confirm-btn" style="background: #ff0040;">CLEAR</button>
             <button id="importHamiltonianPath" class="confirm-btn" style="background: #ff6b35;">IMPORT</button>
             <button id="exportHamiltonianPath" class="confirm-btn" style="background: #00f5ff; color: #000;">EXPORT</button>
@@ -2013,7 +2015,7 @@
           </div>
         </div>
         <div style="position: relative; border: 2px solid #00f5ff; border-radius: 6px; background: rgba(10, 10, 30, 0.9); padding: 10px; box-shadow: 0 0 20px rgba(0, 245, 255, 0.3);">
-          <canvas id="hamiltonianPathCanvas" style="display: block; width: 100%; max-width: 600px; margin: 0 auto; cursor: crosshair;"></canvas>
+          <canvas id="hamiltonianPathCanvas" tabindex="0" style="display: block; width: 100%; max-width: 600px; margin: 0 auto; cursor: crosshair; outline: none;"></canvas>
           <input type="file" id="hamiltonianPathFileInput" accept=".json" style="display: none;">
         </div>
         <div id="hamiltonianPathStatus" style="margin-top: 15px; padding: 10px; border-radius: 6px; font-size: 14px; text-align: center;"></div>
@@ -2021,6 +2023,9 @@
           <p><strong>Instructions:</strong></p>
           <ul style="margin: 10px 0; padding-left: 20px;">
             <li>Click and drag to draw the path</li>
+            <li>Use arrow keys to navigate step by step</li>
+            <li>Clicking a distant cell will auto-fill a straight path if clear</li>
+            <li>Use Undo/Redo buttons or Ctrl+Z / Ctrl+Shift+Z (Cmd on Mac)</li>
             <li>Path must start and end at the top-left corner (0, 0)</li>
             <li>All cells must be visited exactly once</li>
             <li>Path must be continuous (adjacent cells only)</li>
@@ -5119,6 +5124,9 @@
     let lastCell = null;
     let canvasCtx = null;
     let canvasCellSize = 0;
+    let pathHistory = []; // History for undo/redo
+    let historyIndex = -1; // Current position in history
+    let maxHistorySize = 100; // Limit history size
     
     function initHamiltonianCanvas() {
       if (!hamiltonianPathCanvas) return;
@@ -5362,13 +5370,115 @@
       return null;
     }
     
-    function addCellToPath(cell) {
-      if (!cell) return;
+    // Save current state to history
+    function saveToHistory() {
+      // Remove any future history if we're not at the end
+      if (historyIndex < pathHistory.length - 1) {
+        pathHistory = pathHistory.slice(0, historyIndex + 1);
+      }
+      
+      // Add current state
+      pathHistory.push({
+        path: JSON.parse(JSON.stringify(currentPath)),
+        lastCell: lastCell ? { ...lastCell } : null
+      });
+      
+      // Limit history size
+      if (pathHistory.length > maxHistorySize) {
+        pathHistory.shift();
+      } else {
+        historyIndex++;
+      }
+      
+      updateUndoRedoButtons();
+    }
+    
+    // Undo last action
+    function undoPath() {
+      if (historyIndex > 0) {
+        historyIndex--;
+        const state = pathHistory[historyIndex];
+        currentPath = JSON.parse(JSON.stringify(state.path));
+        lastCell = state.lastCell ? { ...state.lastCell } : null;
+        drawHamiltonianCanvas();
+        updateUndoRedoButtons();
+      }
+    }
+    
+    // Redo last undone action
+    function redoPath() {
+      if (historyIndex < pathHistory.length - 1) {
+        historyIndex++;
+        const state = pathHistory[historyIndex];
+        currentPath = JSON.parse(JSON.stringify(state.path));
+        lastCell = state.lastCell ? { ...state.lastCell } : null;
+        drawHamiltonianCanvas();
+        updateUndoRedoButtons();
+      }
+    }
+    
+    // Update undo/redo button states
+    function updateUndoRedoButtons() {
+      const undoBtn = document.getElementById('undoHamiltonianPath');
+      const redoBtn = document.getElementById('redohamiltonianPath');
+      if (undoBtn) {
+        undoBtn.disabled = historyIndex <= 0;
+        undoBtn.style.opacity = historyIndex <= 0 ? '0.5' : '1';
+      }
+      if (redoBtn) {
+        redoBtn.disabled = historyIndex >= pathHistory.length - 1;
+        redoBtn.style.opacity = historyIndex >= pathHistory.length - 1 ? '0.5' : '1';
+      }
+    }
+    
+    // Find a straight path between two cells
+    function findStraightPath(from, to) {
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      
+      // Only allow horizontal or vertical paths (no diagonals)
+      if (dx !== 0 && dy !== 0) {
+        return null; // Not a straight horizontal or vertical line
+      }
+      
+      const path = [];
+      const steps = Math.max(Math.abs(dx), Math.abs(dy));
+      const stepX = dx !== 0 ? (dx > 0 ? 1 : -1) : 0;
+      const stepY = dy !== 0 ? (dy > 0 ? 1 : -1) : 0;
+      
+      // Check if path is clear (no cells already in path, except start and end)
+      const pathSet = new Set();
+      currentPath.forEach(c => pathSet.add(`${c.x},${c.y}`));
+      
+      for (let i = 1; i < steps; i++) {
+        const x = from.x + stepX * i;
+        const y = from.y + stepY * i;
+        const key = `${x},${y}`;
+        
+        // Check if cell is already in path (and not the target)
+        if (pathSet.has(key) && (x !== to.x || y !== to.y)) {
+          return null; // Path blocked
+        }
+        
+        // Check bounds
+        if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) {
+          return null; // Out of bounds
+        }
+        
+        path.push({ x, y });
+      }
+      
+      return path;
+    }
+    
+    function addCellToPath(cell, useSmartFill = true) {
+      if (!cell) return false;
       
       // If path is empty, must start at (0, 0)
       if (currentPath.length === 0) {
         if (cell.x !== 0 || cell.y !== 0) {
           currentPath.push({ x: 0, y: 0 });
+          saveToHistory();
         }
       }
       
@@ -5385,13 +5495,15 @@
             uniqueCells.size === totalCells &&
             currentPath[0].x === 0 && currentPath[0].y === 0) {
           // Completing the cycle - add the final (0,0)
+          saveToHistory();
           currentPath.push(cell);
           lastCell = cell;
           drawHamiltonianCanvas();
-          return;
+          return true;
         }
         // Otherwise, don't add duplicates
-        return;
+        SoundManager.playInvalidMove();
+        return false;
       }
       
       // Check if cell is adjacent to last cell
@@ -5399,33 +5511,52 @@
         const last = currentPath[currentPath.length - 1];
         const dx = Math.abs(last.x - cell.x);
         const dy = Math.abs(last.y - cell.y);
+        
         if (dx + dy !== 1) {
-          // Not adjacent - skip non-adjacent cells
-          // Exception: if we're trying to complete the cycle by returning to (0,0),
-          // check if we've visited all cells first
+          // Not adjacent - try smart fill if enabled
+          if (useSmartFill) {
+            const straightPath = findStraightPath(last, cell);
+            if (straightPath && straightPath.length > 0) {
+              // Found a valid straight path - add all intermediate cells
+              saveToHistory();
+              for (const intermediateCell of straightPath) {
+                currentPath.push(intermediateCell);
+              }
+              currentPath.push(cell);
+              lastCell = cell;
+              drawHamiltonianCanvas();
+              return true;
+            }
+          }
+          
+          // Check if trying to complete cycle
           const totalCells = GRID_SIZE * GRID_SIZE;
           const uniqueCells = new Set();
           currentPath.forEach(c => uniqueCells.add(`${c.x},${c.y}`));
           if (cell.x === 0 && cell.y === 0 && uniqueCells.size === totalCells) {
-            // Allow completing the cycle even if not strictly adjacent (handles edge cases)
-            // But first check if last cell is actually adjacent to (0,0)
             const lastDx = Math.abs(last.x - 0);
             const lastDy = Math.abs(last.y - 0);
             if (lastDx + lastDy === 1) {
-              // Adjacent, proceed to add
-            } else {
-              // Not adjacent, can't complete cycle from here
-              return;
+              saveToHistory();
+              currentPath.push(cell);
+              lastCell = cell;
+              drawHamiltonianCanvas();
+              return true;
             }
-          } else {
-            return;
           }
+          
+          // Invalid move
+          SoundManager.playInvalidMove();
+          return false;
         }
       }
       
+      // Valid adjacent cell - add it
+      saveToHistory();
       currentPath.push(cell);
       lastCell = cell;
       drawHamiltonianCanvas();
+      return true;
     }
     
     // Event handlers
@@ -5447,8 +5578,19 @@
           currentPath = [];
           lastCell = null;
         }
+        // Initialize history with current state
+        pathHistory = [];
+        historyIndex = -1;
+        if (currentPath.length > 0) {
+          saveToHistory();
+        }
         setTimeout(() => {
           initHamiltonianCanvas();
+          updateUndoRedoButtons();
+          // Focus canvas for arrow key navigation
+          if (hamiltonianPathCanvas) {
+            hamiltonianPathCanvas.focus();
+          }
         }, 100);
       });
     }
@@ -5522,14 +5664,101 @@
       });
     }
     
+    // Undo button
+    const undoHamiltonianPath = document.getElementById('undoHamiltonianPath');
+    if (undoHamiltonianPath) {
+      undoHamiltonianPath.addEventListener('click', () => {
+        undoPath();
+      });
+    }
+    
+    // Redo button
+    const redoHamiltonianPath = document.getElementById('redohamiltonianPath');
+    if (redohamiltonianPath) {
+      redoHamiltonianPath.addEventListener('click', () => {
+        redoPath();
+      });
+    }
+    
     // Clear button
     if (clearHamiltonianPath) {
       clearHamiltonianPath.addEventListener('click', () => {
+        saveToHistory(); // Save current state before clearing
         currentPath = [];
         lastCell = null;
+        pathHistory = [];
+        historyIndex = -1;
         drawHamiltonianCanvas();
+        updateUndoRedoButtons();
       });
     }
+    
+    // Keyboard shortcuts for undo/redo (when modal is open)
+    document.addEventListener('keydown', (e) => {
+      if (!hamiltonianPathModal || !hamiltonianPathModal.classList.contains('show')) {
+        return; // Modal not open, ignore
+      }
+      
+      // Check for undo (Ctrl+Z or Cmd+Z)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undoPath();
+        return;
+      }
+      
+      // Check for redo (Ctrl+Shift+Z or Cmd+Shift+Z)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') {
+        e.preventDefault();
+        redoPath();
+        return;
+      }
+      
+      // Arrow key navigation (when modal is open)
+      // Allow arrow keys to work when modal is open (not just when canvas is focused)
+      if (e.key.startsWith('Arrow')) {
+        if (currentPath.length === 0) {
+          // If path is empty, start at (0,0) first
+          if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            currentPath.push({ x: 0, y: 0 });
+            lastCell = { x: 0, y: 0 };
+            saveToHistory();
+            drawHamiltonianCanvas();
+          }
+          return;
+        }
+        
+        const last = currentPath[currentPath.length - 1];
+        let nextCell = null;
+        
+        switch (e.key) {
+          case 'ArrowUp':
+            if (last.y > 0) {
+              nextCell = { x: last.x, y: last.y - 1 };
+            }
+            break;
+          case 'ArrowDown':
+            if (last.y < GRID_SIZE - 1) {
+              nextCell = { x: last.x, y: last.y + 1 };
+            }
+            break;
+          case 'ArrowLeft':
+            if (last.x > 0) {
+              nextCell = { x: last.x - 1, y: last.y };
+            }
+            break;
+          case 'ArrowRight':
+            if (last.x < GRID_SIZE - 1) {
+              nextCell = { x: last.x + 1, y: last.y };
+            }
+            break;
+        }
+        
+        if (nextCell) {
+          e.preventDefault();
+          addCellToPath(nextCell, false); // Don't use smart fill for arrow keys
+        }
+      }
+    });
     
     // Save button
     if (saveHamiltonianPath) {
@@ -5581,9 +5810,16 @@
           try {
             const imported = JSON.parse(event.target.result);
             if (Array.isArray(imported) && imported.length > 0) {
+              // Save current state to history before importing
+              saveToHistory();
               currentPath = imported;
               lastCell = currentPath.length > 0 ? currentPath[currentPath.length - 1] : null;
+              // Initialize history with imported path
+              pathHistory = [];
+              historyIndex = -1;
+              saveToHistory();
               drawHamiltonianCanvas();
+              updateUndoRedoButtons();
               hamiltonianPathStatus.textContent = 'Path imported. Validate and save to use it.';
               hamiltonianPathStatus.style.background = 'rgba(0, 245, 255, 0.2)';
               hamiltonianPathStatus.style.color = '#00f5ff';
