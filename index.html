@@ -2073,6 +2073,7 @@
     // Sound Manager
     const SoundManager = {
       audioContext: null,
+      masterGain: null,
       enabled: true,
       hasUserInteracted: false,
       noteIndex: 0, // Track current note in sequence for musical patterns
@@ -2084,6 +2085,12 @@
       init() {
         try {
           this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          
+          // Create master gain node for better control and to prevent clipping
+          this.masterGain = this.audioContext.createGain();
+          this.masterGain.gain.value = 0.9; // Slight headroom to prevent clipping
+          this.masterGain.connect(this.audioContext.destination);
+          
           const soundPref = localStorage.getItem('soundEnabled');
           this.enabled = soundPref === null ? true : soundPref === 'true';
           this.updateButton();
@@ -2141,7 +2148,7 @@
       activeOscillators: [],
       
       playTone(frequency, duration, type = 'sine', volume = 0.3) {
-        if (!this.enabled || !this.audioContext) return;
+        if (!this.enabled || !this.audioContext || !this.masterGain) return;
         if (this.audioContext.state === 'suspended' && !this.hasUserInteracted) return;
         
         // Ensure audio context is resumed (non-blocking)
@@ -2152,22 +2159,38 @@
           if (this.audioContext.state === 'suspended') return;
           
           const now = this.audioContext.currentTime;
+          const startTime = now + 0.001; // Small delay to prevent clicks
           const oscillator = this.audioContext.createOscillator();
           const gainNode = this.audioContext.createGain();
           
+          // Connect through master gain for better control
           oscillator.connect(gainNode);
-          gainNode.connect(this.audioContext.destination);
+          gainNode.connect(this.masterGain);
           
           oscillator.type = type;
-          oscillator.frequency.value = frequency;
+          oscillator.frequency.setValueAtTime(frequency, startTime);
           
-          // Very quick envelope for immediate response
-          gainNode.gain.setValueAtTime(0, now);
-          gainNode.gain.linearRampToValueAtTime(volume, now + 0.002);
-          gainNode.gain.linearRampToValueAtTime(0, now + duration);
+          // Smooth envelope with exponential curves to prevent clicks/pops
+          const attackTime = 0.005; // Slightly longer attack for smoother start
+          const releaseTime = Math.min(0.02, duration * 0.3); // Release time (20ms or 30% of duration)
+          const sustainTime = Math.max(0, duration - attackTime - releaseTime);
           
-          oscillator.start(now);
-          oscillator.stop(now + duration);
+          // Set initial gain to very small value (exponential ramps can't start from 0)
+          gainNode.gain.setValueAtTime(0.0001, startTime);
+          
+          // Smooth attack using exponential ramp
+          gainNode.gain.exponentialRampToValueAtTime(volume, startTime + attackTime);
+          
+          // Sustain
+          if (sustainTime > 0) {
+            gainNode.gain.setValueAtTime(volume, startTime + attackTime + sustainTime);
+          }
+          
+          // Smooth release using exponential ramp
+          gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+          
+          oscillator.start(startTime);
+          oscillator.stop(startTime + duration + 0.01); // Small buffer for cleanup
           
           // Track active oscillators for potential cleanup
           this.activeOscillators.push(oscillator);
@@ -2176,6 +2199,11 @@
             if (index > -1) {
               this.activeOscillators.splice(index, 1);
             }
+            // Clean up nodes
+            try {
+              oscillator.disconnect();
+              gainNode.disconnect();
+            } catch (e) {}
           };
         } catch (e) {
           // Silently fail
